@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id          String      @id @default(cuid())
+  title       String      @unique
+  content     String      @db.Text
+  excerpt     String      @db.Text
+  image       String?
+  status      PostStatus  @default(DRAFT)
+  featured    Boolean     @default(false)
+  published   Boolean     @default(false)
+  authorId    String
+  categoryId  String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  category    Category    @relation(fields: [categoryId], references: [id])
+  tags        TagsOnPosts[]
+
+  @@map("posts")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?   @db.Text
+  slug        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  posts       Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?       @db.Text
+  slug        String        @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  posts       TagsOnPosts[]
+
+  @@map("tags")
+}
+
+model TagsOnPosts {
+  postId    String
+  tagId     String
+  post      Post     @relation(fields: [postId], references: [id])
+  tag       Tag      @relation(fields: [tagId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([postId, tagId])
+  @@map("tags_on_posts")
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+} 

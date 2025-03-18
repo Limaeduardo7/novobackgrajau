@@ -1,0 +1,482 @@
+{
+	"info": {
+		"_postman_id": "60d5c8a1-8724-4cd1-b4da-9e5e498d8ec1",
+		"name": "Anunciar Grajaú API",
+		"description": "API do blog do sistema Anunciar Grajaú",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Listar Posts",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/blog/posts?page=1&limit=10&sortBy=createdAt&order=desc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"posts"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "order",
+									"value": "desc"
+								},
+								{
+									"key": "published",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "featured",
+									"value": "true",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "authorId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "tags[]",
+									"value": "tecnologia",
+									"disabled": true
+								},
+								{
+									"key": "tags[]",
+									"value": "noticias",
+									"disabled": true
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Obter Post",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/blog/posts/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"posts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post_id_aqui"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Criar Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Título do Post\",\n  \"content\": \"Conteúdo do post em formato longo...\",\n  \"image\": \"https://exemplo.com/imagem.jpg\",\n  \"published\": false,\n  \"featured\": false,\n  \"authorId\": \"id_do_autor\",\n  \"categoryId\": \"id_da_categoria\",\n  \"tags\": [\"tecnologia\", \"grajau\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/posts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"posts"
+							]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Post",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Título Atualizado\",\n  \"content\": \"Conteúdo atualizado...\",\n  \"featured\": true,\n  \"published\": true,\n  \"tags\": [\"tecnologia\", \"noticias\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/posts/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"posts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post_id_aqui"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Deletar Post",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/blog/posts/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"posts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "post_id_aqui"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Categorias",
+			"item": [
+				{
+					"name": "Listar Categorias",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/blog/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"categories"
+							]
+						}
+					}
+				},
+				{
+					"name": "Criar Categoria",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nome da Categoria\",\n  \"description\": \"Descrição da categoria\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"categories"
+							]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Categoria",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Novo Nome da Categoria\",\n  \"description\": \"Nova descrição da categoria\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/categories/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"categories",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "categoria_id_aqui"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Deletar Categoria",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/blog/categories/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"categories",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "categoria_id_aqui"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Tags",
+			"item": [
+				{
+					"name": "Listar Tags",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/blog/tags",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"tags"
+							]
+						}
+					}
+				},
+				{
+					"name": "Criar Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Nome da Tag\",\n  \"description\": \"Descrição da tag\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/tags",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"tags"
+							]
+						}
+					}
+				},
+				{
+					"name": "Atualizar Tag",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Novo Nome da Tag\",\n  \"description\": \"Nova descrição da tag\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/blog/tags/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"tags",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "tag_id_aqui"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Deletar Tag",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/blog/tags/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"blog",
+								"tags",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "tag_id_aqui"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://api.anunciargrajau.com.br",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "seu_token_jwt",
+			"type": "string"
+		}
+	]
+} 
