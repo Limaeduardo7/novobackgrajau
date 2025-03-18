@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-import slugify from 'slugify';
-import { AppError } from '../middlewares/errorHandler';
 import { PaginationParams, Post, Category, Tag } from '../types/blog';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
+import { AppError } from '../utils/AppError';
+import slugify from 'slugify';
+import { Prisma } from '@prisma/client';
 
 export class BlogService {
   // Posts
@@ -21,45 +20,59 @@ export class BlogService {
       order = 'desc'
     } = params;
 
-    const where = {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PostWhereInput = {
       ...(published !== undefined && { published }),
       ...(featured !== undefined && { featured }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
-      ...(search && {
-        OR: [
-          { title: { contains: search, mode: 'insensitive' } },
-          { content: { contains: search, mode: 'insensitive' } }
-        ]
-      }),
-      ...(tags && tags.length > 0 && {
+      ...(tags?.length && {
         tags: {
           some: {
-            tagId: { in: tags }
+            tagId: {
+              in: tags
+            }
           }
         }
+      }),
+      ...(search && {
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: 'insensitive' as Prisma.QueryMode
+            }
+          },
+          {
+            content: {
+              contains: search,
+              mode: 'insensitive' as Prisma.QueryMode
+            }
+          }
+        ]
       })
     };
 
     const total = await prisma.post.count({ where });
     const totalPages = Math.ceil(total / limit);
-    const skip = (page - 1) * limit;
 
     const posts = await prisma.post.findMany({
       where,
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: order
+      },
       include: {
+        author: true,
         category: true,
         tags: {
           include: {
             tag: true
           }
         }
-      },
-      orderBy: {
-        [sortBy]: order
-      },
-      skip,
-      take: limit
+      }
     });
 
     return {
@@ -94,16 +107,37 @@ export class BlogService {
   }
 
   async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
-    const post = await prisma.post.create({
-      data: {
-        ...data,
+    const slug = slugify(data.title, { lower: true, strict: true });
+
+    const postData: Prisma.PostCreateInput = {
+      title: data.title,
+      slug,
+      content: data.content,
+      image: data.image,
+      published: data.published,
+      featured: data.featured,
+      publishedAt: data.published ? new Date() : null,
+      author: {
+        connect: { id: data.authorId }
+      },
+      category: {
+        connect: { id: data.categoryId }
+      },
+      ...(data.tags && {
         tags: {
-          create: data.tags?.map(tagId => ({
-            tag: { connect: { id: tagId } }
+          create: data.tags.map(tagId => ({
+            tag: {
+              connect: { id: tagId }
+            }
           }))
         }
-      },
+      })
+    };
+
+    const post = await prisma.post.create({
+      data: postData,
       include: {
+        author: true,
         category: true,
         tags: {
           include: {
@@ -113,24 +147,61 @@ export class BlogService {
       }
     });
 
-    return { data: post, message: 'Post criado com sucesso' };
+    return { data: post };
   }
 
   async updatePost(id: string, data: Partial<Post>) {
+    const existingPost = await prisma.post.findUnique({
+      where: { id },
+      include: {
+        tags: true
+      }
+    });
+
+    if (!existingPost) {
+      throw new AppError(404, 'Post não encontrado');
+    }
+
+    const updateData: Prisma.PostUpdateInput = {
+      ...(data.title && {
+        title: data.title,
+        slug: slugify(data.title, { lower: true, strict: true })
+      }),
+      ...(data.content && { content: data.content }),
+      ...(data.image && { image: data.image }),
+      ...(data.published !== undefined && {
+        published: data.published,
+        publishedAt: data.published ? new Date() : null
+      }),
+      ...(data.featured !== undefined && { featured: data.featured }),
+      ...(data.categoryId && {
+        category: {
+          connect: { id: data.categoryId }
+        }
+      }),
+      ...(data.authorId && {
+        author: {
+          connect: { id: data.authorId }
+        }
+      }),
+      ...(data.tags && {
+        tags: {
+          deleteMany: {},
+          create: data.tags.map(tagId => ({
+            tag: {
+              connect: { id: tagId }
+            }
+          }))
+        }
+      }),
+      updatedAt: new Date()
+    };
+
     const post = await prisma.post.update({
       where: { id },
-      data: {
-        ...data,
-        ...(data.tags && {
-          tags: {
-            deleteMany: {},
-            create: data.tags.map(tagId => ({
-              tag: { connect: { id: tagId } }
-            }))
-          }
-        })
-      },
+      data: updateData,
       include: {
+        author: true,
         category: true,
         tags: {
           include: {
@@ -140,7 +211,7 @@ export class BlogService {
       }
     });
 
-    return { data: post, message: 'Post atualizado com sucesso' };
+    return { data: post };
   }
 
   async deletePost(id: string) {
