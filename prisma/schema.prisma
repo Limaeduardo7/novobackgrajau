@@ -8,22 +8,24 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Post {
   id          String      @id @default(cuid())
   title       String      @unique
+  slug        String      @unique
   content     String      @db.Text
-  excerpt     String      @db.Text
   image       String?
-  status      PostStatus  @default(DRAFT)
-  featured    Boolean     @default(false)
   published   Boolean     @default(false)
+  publishedAt DateTime?
+  featured    Boolean     @default(false)
   authorId    String
   categoryId  String
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  author      User        @relation(fields: [authorId], references: [id])
   category    Category    @relation(fields: [categoryId], references: [id])
   tags        TagsOnPosts[]
 
@@ -33,7 +35,6 @@ model Post {
 model Category {
   id          String    @id @default(cuid())
   name        String    @unique
-  description String?   @db.Text
   slug        String    @unique
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -45,7 +46,6 @@ model Category {
 model Tag {
   id          String        @id @default(cuid())
   name        String        @unique
-  description String?       @db.Text
   slug        String        @unique
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -65,7 +65,31 @@ model TagsOnPosts {
   @@map("tags_on_posts")
 }
 
-enum PostStatus {
-  DRAFT
-  PUBLISHED
+model User {
+  id          String    @id
+  clerkId     String    @unique
+  name        String
+  email       String    @unique
+  phone       String?
+  document    String?
+  documentType String?
+  role        UserRole  @default(USER)
+  status      UserStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  posts       Post[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
 } 

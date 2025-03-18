@@ -41,13 +41,13 @@ export class BlogService {
           {
             title: {
               contains: search,
-              mode: 'insensitive' as Prisma.QueryMode
+              mode: 'insensitive'
             }
           },
           {
             content: {
               contains: search,
-              mode: 'insensitive' as Prisma.QueryMode
+              mode: 'insensitive'
             }
           }
         ]
@@ -65,11 +65,17 @@ export class BlogService {
         [sortBy]: order
       },
       include: {
-        author: true,
         category: true,
         tags: {
           include: {
             tag: true
+          }
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }
@@ -107,16 +113,14 @@ export class BlogService {
   }
 
   async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
-    const slug = slugify(data.title, { lower: true, strict: true });
-
     const postData: Prisma.PostCreateInput = {
       title: data.title,
-      slug,
       content: data.content,
       image: data.image,
       published: data.published,
       featured: data.featured,
       publishedAt: data.published ? new Date() : null,
+      slug: slugify(data.title, { lower: true, strict: true }),
       author: {
         connect: { id: data.authorId }
       },
@@ -137,11 +141,17 @@ export class BlogService {
     const post = await prisma.post.create({
       data: postData,
       include: {
-        author: true,
         category: true,
         tags: {
           include: {
             tag: true
+          }
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }
@@ -201,11 +211,17 @@ export class BlogService {
       where: { id },
       data: updateData,
       include: {
-        author: true,
         category: true,
         tags: {
           include: {
             tag: true
+          }
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true
           }
         }
       }

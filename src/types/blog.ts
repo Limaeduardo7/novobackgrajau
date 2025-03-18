@@ -12,12 +12,13 @@ export interface Post {
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;
+  author?: User;
+  category?: Category;
 }
 
 export interface Category {
   id: string;
   name: string;
-  description?: string;
   slug: string;
   createdAt: Date;
   updatedAt: Date;
@@ -26,10 +27,35 @@ export interface Category {
 export interface Tag {
   id: string;
   name: string;
-  description?: string;
   slug: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface User {
+  id: string;
+  clerkId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  document?: string;
+  documentType?: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  USER = 'USER'
+}
+
+export enum UserStatus {
+  PENDING = 'PENDING',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  BLOCKED = 'BLOCKED'
 }
 
 export interface PaginationParams {

@@ -234,7 +234,6 @@ export class BlogSupabaseService {
   }
 
   async createCategory(data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) {
-    // Validar dados obrigatórios
     if (!data.name || typeof data.name !== 'string') {
       throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
     }
@@ -246,7 +245,6 @@ export class BlogSupabaseService {
         .from('categories')
         .insert({
           name: data.name,
-          description: data.description || '',
           slug,
           updatedAt: new Date().toISOString()
         })
@@ -255,7 +253,7 @@ export class BlogSupabaseService {
 
       if (error) {
         console.error('Erro ao criar categoria:', error);
-        if (error.code === '23505') { // violação de unique constraint
+        if (error.code === '23505') {
           throw new AppError(400, 'Já existe uma categoria com este nome');
         }
         throw new AppError(500, error.message);
@@ -272,25 +270,36 @@ export class BlogSupabaseService {
   }
 
   async updateCategory(id: string, data: Partial<Category>) {
-    const slug = data.name ? slugify(data.name, { lower: true, strict: true }) : undefined;
-    
-    const { data: category, error } = await supabase
-      .from('categories')
-      .update({
-        ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(slug && { slug }),
-        updatedAt: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { data: category, error } = await supabase
+        .from('categories')
+        .update({
+          ...(data.name && {
+            name: data.name,
+            slug: slugify(data.name, { lower: true, strict: true })
+          }),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      throw new AppError(500, error.message);
+      if (error) {
+        console.error('Erro ao atualizar categoria:', error);
+        if (error.code === '23505') {
+          throw new AppError(400, 'Já existe uma categoria com este nome');
+        }
+        throw new AppError(500, error.message);
+      }
+
+      return { data: category, message: 'Categoria atualizada com sucesso' };
+    } catch (error: any) {
+      console.error('Erro ao atualizar categoria:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(500, 'Erro ao atualizar categoria');
     }
-
-    return { data: category, message: 'Categoria atualizada com sucesso' };
   }
 
   async deleteCategory(id: string) {
@@ -320,7 +329,6 @@ export class BlogSupabaseService {
   }
 
   async createTag(data: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>) {
-    // Validar dados obrigatórios
     if (!data.name || typeof data.name !== 'string') {
       throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
     }
@@ -332,7 +340,6 @@ export class BlogSupabaseService {
         .from('tags')
         .insert({
           name: data.name,
-          description: data.description || '',
           slug,
           updatedAt: new Date().toISOString()
         })
@@ -341,7 +348,7 @@ export class BlogSupabaseService {
 
       if (error) {
         console.error('Erro ao criar tag:', error);
-        if (error.code === '23505') { // violação de unique constraint
+        if (error.code === '23505') {
           throw new AppError(400, 'Já existe uma tag com este nome');
         }
         throw new AppError(500, error.message);
@@ -358,25 +365,36 @@ export class BlogSupabaseService {
   }
 
   async updateTag(id: string, data: Partial<Tag>) {
-    const slug = data.name ? slugify(data.name, { lower: true, strict: true }) : undefined;
-    
-    const { data: tag, error } = await supabase
-      .from('tags')
-      .update({
-        ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(slug && { slug }),
-        updatedAt: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    try {
+      const { data: tag, error } = await supabase
+        .from('tags')
+        .update({
+          ...(data.name && {
+            name: data.name,
+            slug: slugify(data.name, { lower: true, strict: true })
+          }),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    if (error) {
-      throw new AppError(500, error.message);
+      if (error) {
+        console.error('Erro ao atualizar tag:', error);
+        if (error.code === '23505') {
+          throw new AppError(400, 'Já existe uma tag com este nome');
+        }
+        throw new AppError(500, error.message);
+      }
+
+      return { data: tag, message: 'Tag atualizada com sucesso' };
+    } catch (error: any) {
+      console.error('Erro ao atualizar tag:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw new AppError(500, 'Erro ao atualizar tag');
     }
-
-    return { data: tag, message: 'Tag atualizada com sucesso' };
   }
 
   async deleteTag(id: string) {
