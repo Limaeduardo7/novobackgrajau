@@ -3,6 +3,7 @@ export interface Post {
   title: string;
   slug: string;
   content: string;
+  excerpt: string;
   image?: string;
   published: boolean;
   publishedAt?: Date;

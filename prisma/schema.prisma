@@ -16,6 +16,7 @@ model Post {
   title       String      @unique
   slug        String      @unique
   content     String      @db.Text
+  excerpt     String      @db.Text
   image       String?
   published   Boolean     @default(false)
   publishedAt DateTime?

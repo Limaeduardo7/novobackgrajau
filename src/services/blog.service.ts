@@ -70,13 +70,6 @@ export class BlogService {
           include: {
             tag: true
           }
-        },
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true
-          }
         }
       }
     });
@@ -113,29 +106,23 @@ export class BlogService {
   }
 
   async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
-    const postData: Prisma.PostCreateInput = {
+    const postData: Prisma.PostUncheckedCreateInput = {
       title: data.title,
       content: data.content,
+      excerpt: data.content.substring(0, 200),
       image: data.image,
       published: data.published,
       featured: data.featured,
-      publishedAt: data.published ? new Date() : null,
+      authorId: data.authorId,
+      categoryId: data.categoryId,
       slug: slugify(data.title, { lower: true, strict: true }),
-      author: {
-        connect: { id: data.authorId }
-      },
-      category: {
-        connect: { id: data.categoryId }
-      },
-      ...(data.tags && {
-        tags: {
-          create: data.tags.map(tagId => ({
-            tag: {
-              connect: { id: tagId }
-            }
-          }))
-        }
-      })
+      tags: data.tags ? {
+        create: data.tags.map(tagId => ({
+          tag: {
+            connect: { id: tagId }
+          }
+        }))
+      } : undefined
     };
 
     const post = await prisma.post.create({
@@ -145,13 +132,6 @@ export class BlogService {
         tags: {
           include: {
             tag: true
-          }
-        },
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true
           }
         }
       }
@@ -172,28 +152,22 @@ export class BlogService {
       throw new AppError(404, 'Post não encontrado');
     }
 
-    const updateData: Prisma.PostUpdateInput = {
+    const updateData: Prisma.PostUncheckedUpdateInput = {
       ...(data.title && {
         title: data.title,
         slug: slugify(data.title, { lower: true, strict: true })
       }),
-      ...(data.content && { content: data.content }),
+      ...(data.content && {
+        content: data.content,
+        excerpt: data.content.substring(0, 200)
+      }),
       ...(data.image && { image: data.image }),
       ...(data.published !== undefined && {
-        published: data.published,
-        publishedAt: data.published ? new Date() : null
+        published: data.published
       }),
       ...(data.featured !== undefined && { featured: data.featured }),
-      ...(data.categoryId && {
-        category: {
-          connect: { id: data.categoryId }
-        }
-      }),
-      ...(data.authorId && {
-        author: {
-          connect: { id: data.authorId }
-        }
-      }),
+      ...(data.categoryId && { categoryId: data.categoryId }),
+      ...(data.authorId && { authorId: data.authorId }),
       ...(data.tags && {
         tags: {
           deleteMany: {},
@@ -215,13 +189,6 @@ export class BlogService {
         tags: {
           include: {
             tag: true
-          }
-        },
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true
           }
         }
       }
