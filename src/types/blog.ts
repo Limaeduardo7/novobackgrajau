@@ -70,6 +70,7 @@ export interface PaginationParams {
   tags?: string[];
   sortBy?: string;
   order?: 'asc' | 'desc';
+  validCategoryOnly?: boolean;
 }
 
 export interface PaginatedResponse<T> {

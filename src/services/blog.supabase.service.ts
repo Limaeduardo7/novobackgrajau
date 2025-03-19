@@ -16,7 +16,8 @@ export class BlogSupabaseService {
       search,
       tags,
       sortBy = 'createdAt',
-      order = 'desc'
+      order = 'desc',
+      validCategoryOnly = false
     } = params;
 
     // Início da consulta
@@ -36,6 +37,11 @@ export class BlogSupabaseService {
     if (categoryId) {
       query = query.eq('categoryId', categoryId);
     }
+
+    // Filtrar posts com categoryId nulo se validCategoryOnly for true
+    if (validCategoryOnly === true) {
+      query = query.not('categoryId', 'is', null);
+    }
     
     if (authorId) {
       query = query.eq('authorId', authorId);
@@ -52,9 +58,16 @@ export class BlogSupabaseService {
     }
 
     // Contagem total para paginação
-    const { count } = await supabase
+    const countQuery = supabase
       .from('BlogPost')
       .select('*', { count: 'exact', head: true });
+      
+    // Se validCategoryOnly for true, aplicar o mesmo filtro na contagem
+    if (validCategoryOnly === true) {
+      countQuery.not('categoryId', 'is', null);
+    }
+    
+    const { count } = await countQuery;
 
     // Paginação
     const total = count || 0;
@@ -82,21 +95,39 @@ export class BlogSupabaseService {
     };
   }
 
-  async getPostById(id: string) {
-    const { data, error } = await supabase
+  async getPostById(id: string, options: { validCategoryOnly?: boolean } = {}) {
+    const { validCategoryOnly = false } = options;
+    
+    let query = supabase
       .from('BlogPost')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
+    
+    // Se validCategoryOnly for true, aplicar filtro
+    if (validCategoryOnly === true) {
+      query = query.not('categoryId', 'is', null);
+    }
+    
+    const { data, error } = await query.single();
 
     if (error) {
-      throw new AppError(404, 'Post não encontrado');
+      if (error.code === 'PGRST116') {
+        throw new AppError(404, 'Post não encontrado');
+      }
+      throw new AppError(500, error.message);
+    }
+
+    // Verificar se o post tem categoryId nulo (somente se validCategoryOnly for true)
+    if (validCategoryOnly === true && (data.categoryId === null || data.categoryId === undefined)) {
+      throw new AppError(400, 'Post com categoria inválida ou nula');
     }
 
     return { data };
   }
 
-  async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
+  async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>, options: { allowNullCategory?: boolean } = {}) {
+    const { allowNullCategory = false } = options;
+    
     // Validar dados obrigatórios
     if (!data.title || typeof data.title !== 'string') {
       throw new AppError(400, 'Título é obrigatório e deve ser uma string');
@@ -104,6 +135,11 @@ export class BlogSupabaseService {
 
     if (!data.authorId) {
       throw new AppError(400, 'ID do autor é obrigatório');
+    }
+    
+    // Verificar se categoryId está presente quando necessário
+    if (!allowNullCategory && (data.categoryId === null || data.categoryId === undefined)) {
+      throw new AppError(400, 'ID da categoria é obrigatório');
     }
     
     // Verificar se o autor existe
@@ -124,6 +160,19 @@ export class BlogSupabaseService {
       console.log('Usuários disponíveis:', allUsers);
       
       throw new AppError(400, 'Autor não encontrado. ID fornecido: ' + data.authorId);
+    }
+    
+    // Se categoryId estiver definido, verificar se a categoria existe
+    if (data.categoryId) {
+      const { data: category, error: categoryError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('id', data.categoryId)
+        .single();
+        
+      if (categoryError || !category) {
+        throw new AppError(400, 'Categoria não encontrada. ID fornecido: ' + data.categoryId);
+      }
     }
     
     // Gerar slug automaticamente a partir do título

@@ -8,7 +8,12 @@ export class BlogController {
   // Posts
   async getPosts(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.getPosts(req.query);
+      const params = {
+        ...req.query,
+        validCategoryOnly: req.query.validCategoryOnly === 'true'
+      };
+      
+      const result = await blogService.getPosts(params);
       res.json(result);
     } catch (error) {
       next(error);
@@ -17,7 +22,8 @@ export class BlogController {
 
   async getPostById(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.getPostById(req.params.id);
+      const validCategoryOnly = req.query.validCategoryOnly === 'true';
+      const result = await blogService.getPostById(req.params.id, { validCategoryOnly });
       res.json(result);
     } catch (error) {
       next(error);
@@ -26,7 +32,8 @@ export class BlogController {
 
   async createPost(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.createPost(req.body);
+      const allowNullCategory = req.query.allowNullCategory === 'true';
+      const result = await blogService.createPost(req.body, { allowNullCategory });
       res.status(201).json(result);
     } catch (error) {
       next(error);
