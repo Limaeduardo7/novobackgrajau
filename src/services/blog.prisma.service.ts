@@ -29,7 +29,9 @@ export class BlogPrismaService {
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
       ...(validCategoryOnly === true && { 
-        categoryId: { not: null } 
+        NOT: {
+          categoryId: null
+        }
       }),
       ...(tags?.length && {
         tags: {
@@ -100,7 +102,11 @@ export class BlogPrismaService {
     try {
       const where: Prisma.PostWhereInput = { 
         id,
-        ...(validCategoryOnly === true && { categoryId: { not: null } })
+        ...(validCategoryOnly === true && { 
+          NOT: {
+            categoryId: null
+          }
+        })
       };
       
       const post = await prisma.post.findFirst({
