@@ -16,6 +16,22 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Adicionar middleware para redirecionar /public/blog para /api/blog
+app.use('/public/blog', (req, res, next) => {
+  // Modificar o URL para apontar para a rota de API correta
+  req.url = '/api/blog' + req.url;
+  next('route');
+});
+
+// Rota alternativa para capturar requisições redirecionadas
+app.use('/public/blog/*', (req, res) => {
+  // Extrair o caminho após /public/blog/
+  const path = req.originalUrl.replace('/public/blog', '');
+  // Redirecionar para o caminho equivalente em /api/blog
+  res.redirect(307, `/api/blog${path}`);
+});
 
 // Rotas
 app.use('/api/blog', blogRoutes);
