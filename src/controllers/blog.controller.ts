@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { BlogSupabaseService } from '../services/blog.supabase.service';
+import { BlogPrismaService } from '../services/blog.prisma.service';
 import { AppError } from '../middlewares/errorHandler';
 
-const blogService = new BlogSupabaseService();
+const blogService = new BlogPrismaService();
 
 export class BlogController {
   // Posts
@@ -42,7 +42,8 @@ export class BlogController {
 
   async updatePost(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.updatePost(req.params.id, req.body);
+      const allowNullCategory = req.query.allowNullCategory === 'true';
+      const result = await blogService.updatePost(req.params.id, req.body, { allowNullCategory });
       res.json(result);
     } catch (error) {
       next(error);
