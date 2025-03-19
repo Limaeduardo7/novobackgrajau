@@ -156,6 +156,47 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
 GRANT ALL PRIVILEGES ON SCHEMA public TO service_role;
 ```
 
+## Correção de Erro de CategoryId Nulo
+
+Se você encontrar o seguinte erro:
+
+```
+Invalid `prisma.blogPost.findMany()` invocation:
+Error converting field "categoryId" of expected non-nullable type "String", found incompatible value of "null".
+```
+
+Isso ocorre porque existem posts no banco de dados com `categoryId` nulo, mas o Prisma está tentando processar esses registros.
+
+### Solução Implementada
+
+1. **Migração para Novo Serviço**: Criamos um novo serviço `BlogPrismaService` que substitui o `BlogSupabaseService` e usa corretamente os modelos do Prisma.
+
+2. **Script de Correção**: Foi criado um script para corrigir registros existentes com `categoryId` nulo.
+
+### Como Executar o Script de Correção
+
+Execute o script no ambiente de produção:
+
+```bash
+node scripts/fix/fix-null-categories.js
+```
+
+Este script:
+- Cria uma categoria padrão chamada "Geral" (se ainda não existir)
+- Atualiza todos os posts com `categoryId` nulo para usar essa categoria padrão
+
+### Parâmetros Adicionados às APIs
+
+Para evitar problemas futuros, adicionamos dois novos parâmetros:
+
+1. `validCategoryOnly`: Quando `true`, só retorna posts com categoria válida (não nula)
+2. `allowNullCategory`: Quando `true`, permite criar/atualizar posts sem categoria
+
+Exemplo:
+```
+GET /api/blog/posts?validCategoryOnly=true
+```
+
 ## Licença
 
 © 2023 Anunciar Grajaú. Todos os direitos reservados. 
