@@ -23,49 +23,55 @@ export class BlogPrismaService {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.PostWhereInput = {
+    // Construir o objeto where base
+    const whereBase: any = {
       ...(published !== undefined && { published }),
       ...(featured !== undefined && { featured }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
-      ...(validCategoryOnly === true && { 
-        NOT: {
-          categoryId: null
-        }
-      }),
-      ...(tags?.length && {
-        tags: {
-          some: {
-            tagId: {
-              in: tags
-            }
-          }
-        }
-      }),
-      ...(search && {
-        OR: [
-          {
-            title: {
-              contains: search,
-              mode: 'insensitive'
-            }
-          },
-          {
-            content: {
-              contains: search,
-              mode: 'insensitive'
-            }
-          }
-        ]
-      })
     };
+    
+    // Se validCategoryOnly for true, adicionar condição para filtrar posts com categoryId nulo
+    if (validCategoryOnly === true) {
+      whereBase.categoryId = { not: null };
+    }
+    
+    // Adicionar condições de tags se necessário
+    if (tags?.length) {
+      whereBase.tags = {
+        some: {
+          tagId: {
+            in: tags
+          }
+        }
+      };
+    }
+    
+    // Adicionar condições de busca se necessário
+    if (search) {
+      whereBase.OR = [
+        {
+          title: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          content: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        }
+      ];
+    }
 
+    // Usar o objeto where diretamente sem tipagem explícita
     try {
-      const total = await prisma.post.count({ where });
+      const total = await prisma.post.count({ where: whereBase });
       const totalPages = Math.ceil(total / limit);
   
       const posts = await prisma.post.findMany({
-        where,
+        where: whereBase,
         skip,
         take: limit,
         orderBy: {
@@ -100,17 +106,16 @@ export class BlogPrismaService {
     const { validCategoryOnly = false } = options;
     
     try {
-      const where: Prisma.PostWhereInput = { 
-        id,
-        ...(validCategoryOnly === true && { 
-          NOT: {
-            categoryId: null
-          }
-        })
-      };
+      // Construir o objeto where base
+      const whereBase: any = { id };
+      
+      // Se validCategoryOnly for true, adicionar condição para filtrar posts com categoryId nulo
+      if (validCategoryOnly === true) {
+        whereBase.categoryId = { not: null };
+      }
       
       const post = await prisma.post.findFirst({
-        where,
+        where: whereBase,
         include: {
           category: true,
           tags: {
