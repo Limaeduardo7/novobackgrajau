@@ -9,7 +9,7 @@ export interface Post {
   publishedAt?: Date;
   featured: boolean;
   authorId: string;
-  categoryId: string;
+  categoryId?: string | null;
   tags?: string[];
   createdAt: Date;
   updatedAt: Date;

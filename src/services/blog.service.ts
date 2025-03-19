@@ -106,15 +106,14 @@ export class BlogService {
   }
 
   async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>) {
-    const postData: Prisma.PostUncheckedCreateInput = {
+    const postData: any = {
       title: data.title,
       content: data.content,
-      excerpt: data.content.substring(0, 200),
+      excerpt: data.excerpt || data.content.substring(0, 200),
       image: data.image,
       published: data.published,
       featured: data.featured,
       authorId: data.authorId,
-      categoryId: data.categoryId,
       slug: slugify(data.title, { lower: true, strict: true }),
       tags: data.tags ? {
         create: data.tags.map(tagId => ({
@@ -124,6 +123,10 @@ export class BlogService {
         }))
       } : undefined
     };
+
+    if (data.categoryId) {
+      postData.categoryId = data.categoryId;
+    }
 
     const post = await prisma.post.create({
       data: postData,
@@ -152,21 +155,20 @@ export class BlogService {
       throw new AppError(404, 'Post não encontrado');
     }
 
-    const updateData: Prisma.PostUncheckedUpdateInput = {
+    const updateData: any = {
       ...(data.title && {
         title: data.title,
         slug: slugify(data.title, { lower: true, strict: true })
       }),
       ...(data.content && {
         content: data.content,
-        excerpt: data.content.substring(0, 200)
+        excerpt: data.excerpt || data.content.substring(0, 200)
       }),
       ...(data.image && { image: data.image }),
       ...(data.published !== undefined && {
         published: data.published
       }),
       ...(data.featured !== undefined && { featured: data.featured }),
-      ...(data.categoryId && { categoryId: data.categoryId }),
       ...(data.authorId && { authorId: data.authorId }),
       ...(data.tags && {
         tags: {
@@ -180,6 +182,10 @@ export class BlogService {
       }),
       updatedAt: new Date()
     };
+
+    if (data.categoryId !== undefined) {
+      updateData.categoryId = data.categoryId;
+    }
 
     const post = await prisma.post.update({
       where: { id },
