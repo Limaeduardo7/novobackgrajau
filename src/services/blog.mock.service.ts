@@ -1,5 +1,9 @@
-import { v4 as uuidv4 } from 'uuid';
 import { Category, Post, PaginatedResponse, PaginationParams, Tag, User, UserRole, UserStatus } from '../types/blog';
+
+// Função para gerar IDs únicos sem depender do pacote uuid
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
 
 // Dados mock para desenvolvimento local
 const mockCategories: Category[] = [
@@ -65,7 +69,7 @@ export class BlogMockService {
     await simulateNetworkDelay();
     const slug = data.name.toLowerCase().replace(/\s+/g, '-');
     const newCategory: Category = {
-      id: uuidv4(),
+      id: generateId(),
       name: data.name,
       slug,
       createdAt: new Date(),
@@ -127,7 +131,7 @@ export class BlogMockService {
     await simulateNetworkDelay();
     const slug = data.name.toLowerCase().replace(/\s+/g, '-');
     const newTag: Tag = {
-      id: uuidv4(),
+      id: generateId(),
       name: data.name,
       slug,
       createdAt: new Date(),
@@ -221,7 +225,7 @@ export class BlogMockService {
     const slug = data.title.toLowerCase().replace(/\s+/g, '-');
     
     const newPost: Post = {
-      id: uuidv4(),
+      id: generateId(),
       title: data.title,
       slug,
       content: data.content,
