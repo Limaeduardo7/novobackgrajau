@@ -30,7 +30,7 @@ model Post {
   category    Category?   @relation(fields: [categoryId], references: [id])
   tags        TagsOnPosts[]
 
-  @@map("posts")
+  @@map("BlogPost")
 }
 
 model Category {
