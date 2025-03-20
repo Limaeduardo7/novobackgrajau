@@ -173,6 +173,15 @@ Isso ocorre porque existem posts no banco de dados com `categoryId` nulo, mas o 
 
 2. **Script de Correção**: Foi criado um script para corrigir registros existentes com `categoryId` nulo.
 
+3. **Mapeamento Prisma Atualizado**: Configuramos o modelo `Post` do Prisma para mapear para a tabela `BlogPost` no Supabase:
+   ```prisma
+   model Post {
+     // ...campos do modelo
+     @@map("BlogPost")
+   }
+   ```
+   Isso resolve a discrepância entre o nome do modelo no Prisma e o nome da tabela no Supabase.
+
 ### Como Executar o Script de Correção
 
 Execute o script no ambiente de produção:
@@ -195,6 +204,21 @@ Para evitar problemas futuros, adicionamos dois novos parâmetros:
 Exemplo:
 ```
 GET /api/blog/posts?validCategoryOnly=true
+```
+
+### Ao Atualizar Para Esta Versão
+
+Após fazer pull das alterações, execute:
+
+```bash
+npx prisma generate
+npm run build
+```
+
+Em seguida, reinicie o servidor:
+
+```bash
+pm2 restart backendgrajau
 ```
 
 ## Licença
