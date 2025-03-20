@@ -12,12 +12,49 @@ dotenv.config();
 
 const app = express();
 
+// Configuração de CORS melhorada
+const corsOptions = {
+  origin: [
+    process.env.FRONTEND_URL || 'https://anunciargrajaueregiao.com',
+    // Adicione outros domínios permitidos
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+};
+
 // Middlewares
-app.use(cors());
-app.use(helmet());
+app.use(cors(corsOptions));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Middleware para adicionar informações de debug à requisição
+app.use((req, res, next) => {
+  console.log(`Recebida requisição: ${req.method} ${req.url}`);
+  console.log(`Protocolo: ${req.protocol}`);
+  console.log(`Secure: ${req.secure}`);
+  console.log(`X-Forwarded-Proto: ${req.get('x-forwarded-proto')}`);
+  
+  // Adiciona uma propriedade personalizada para verificar se é HTTPS
+  (req as any).isSecureRequest = req.secure || req.get('x-forwarded-proto') === 'https';
+  
+  next();
+});
 
 // Adicionar middleware para redirecionar /public/blog para /api/blog
 app.use('/public/blog', (req, res, next) => {
