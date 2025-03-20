@@ -5,6 +5,15 @@ import { requireAuth, checkPermission } from '../middlewares/auth';
 const router = Router();
 const blogController = new BlogController();
 
+// Rota de teste de autenticação
+router.get('/auth-test', requireAuth, (req: any, res) => {
+  res.json({ 
+    success: true,
+    message: 'Autenticação bem-sucedida',
+    userInfo: req.auth || { message: 'No auth info available' }
+  });
+});
+
 // Posts
 router.get('/posts', blogController.getPosts);
 router.get('/posts/:id', blogController.getPostById);

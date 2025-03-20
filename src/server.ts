@@ -39,6 +39,22 @@ app.use(helmet({
     preload: true
   }
 }));
+
+// Tratamento especial para requisições OPTIONS (preflight)
+app.options('*', (req, res) => {
+  console.log('Requisição OPTIONS recebida:', req.originalUrl);
+  
+  // Configurar cabeçalhos CORS manualmente para ter certeza
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 horas
+  
+  // Responder com 200 OK sem conteúdo
+  res.status(200).end();
+});
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
