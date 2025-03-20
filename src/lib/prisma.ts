@@ -1,14 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 
-// Imprimir a URL do banco de dados para debug (sem senha)
-const dbUrl = process.env.DATABASE_URL || '';
-const sanitizedUrl = dbUrl.replace(/:([^:@]+)@/, ':***@');
-console.log('Iniciando conexão com banco de dados:', sanitizedUrl);
+// URL do banco de dados hardcoded para fins de debug e resolver problema de conexão
+const DATABASE_URL = "postgresql://postgres:%23Anunciar123@fqueaxdcuyrattmadkxx.supabase.co:6543/postgres?schema=public";
+// Sanitizar a URL para não exibir a senha nos logs
+const sanitizedUrl = DATABASE_URL.replace(/:([^:@]+)@/, ':***@');
+
+console.log('Iniciando conexão com banco de dados (hardcoded):', sanitizedUrl);
 
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
+      url: DATABASE_URL
     }
   }
 });
