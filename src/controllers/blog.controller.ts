@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { BlogPrismaService } from '../services/blog.prisma.service';
+import BlogService from '../services/blog.factory';
 import { AppError } from '../middlewares/errorHandler';
-
-const blogService = new BlogPrismaService();
 
 export class BlogController {
   // Posts
@@ -13,7 +11,7 @@ export class BlogController {
         validCategoryOnly: req.query.validCategoryOnly === 'true'
       };
       
-      const result = await blogService.getPosts(params);
+      const result = await BlogService.getPosts(params);
       res.json(result);
     } catch (error) {
       next(error);
@@ -23,7 +21,7 @@ export class BlogController {
   async getPostById(req: Request, res: Response, next: NextFunction) {
     try {
       const validCategoryOnly = req.query.validCategoryOnly === 'true';
-      const result = await blogService.getPostById(req.params.id, { validCategoryOnly });
+      const result = await BlogService.getPostById(req.params.id, { validCategoryOnly });
       res.json(result);
     } catch (error) {
       next(error);
@@ -33,7 +31,7 @@ export class BlogController {
   async createPost(req: Request, res: Response, next: NextFunction) {
     try {
       const allowNullCategory = req.query.allowNullCategory === 'true';
-      const result = await blogService.createPost(req.body, { allowNullCategory });
+      const result = await BlogService.createPost(req.body, { allowNullCategory });
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -43,7 +41,7 @@ export class BlogController {
   async updatePost(req: Request, res: Response, next: NextFunction) {
     try {
       const allowNullCategory = req.query.allowNullCategory === 'true';
-      const result = await blogService.updatePost(req.params.id, req.body, { allowNullCategory });
+      const result = await BlogService.updatePost(req.params.id, req.body, { allowNullCategory });
       res.json(result);
     } catch (error) {
       next(error);
@@ -52,7 +50,7 @@ export class BlogController {
 
   async deletePost(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.deletePost(req.params.id);
+      const result = await BlogService.deletePost(req.params.id);
       res.json(result);
     } catch (error) {
       next(error);
@@ -62,7 +60,7 @@ export class BlogController {
   // Categories
   async getCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.getCategories();
+      const result = await BlogService.getCategories();
       res.json(result);
     } catch (error) {
       next(error);
@@ -71,7 +69,7 @@ export class BlogController {
 
   async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.createCategory(req.body);
+      const result = await BlogService.createCategory(req.body);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -80,7 +78,7 @@ export class BlogController {
 
   async updateCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.updateCategory(req.params.id, req.body);
+      const result = await BlogService.updateCategory(req.params.id, req.body);
       res.json(result);
     } catch (error) {
       next(error);
@@ -89,7 +87,7 @@ export class BlogController {
 
   async deleteCategory(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.deleteCategory(req.params.id);
+      const result = await BlogService.deleteCategory(req.params.id);
       res.json(result);
     } catch (error) {
       next(error);
@@ -99,7 +97,7 @@ export class BlogController {
   // Tags
   async getTags(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.getTags();
+      const result = await BlogService.getTags();
       res.json(result);
     } catch (error) {
       next(error);
@@ -108,7 +106,7 @@ export class BlogController {
 
   async createTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.createTag(req.body);
+      const result = await BlogService.createTag(req.body);
       res.status(201).json(result);
     } catch (error) {
       next(error);
@@ -117,7 +115,7 @@ export class BlogController {
 
   async updateTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.updateTag(req.params.id, req.body);
+      const result = await BlogService.updateTag(req.params.id, req.body);
       res.json(result);
     } catch (error) {
       next(error);
@@ -126,7 +124,7 @@ export class BlogController {
 
   async deleteTag(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await blogService.deleteTag(req.params.id);
+      const result = await BlogService.deleteTag(req.params.id);
       res.json(result);
     } catch (error) {
       next(error);

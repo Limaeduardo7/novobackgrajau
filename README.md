@@ -1,226 +1,115 @@
-# Backend Anunciar Grajaú
+# Backend API - Grajau
 
-API RESTful para o portal de anúncios e blog do Anunciar Grajaú.
+API de gerenciamento de conteúdo e blog para o projeto Grajau.
 
-## Tecnologias
+## Configurações
 
-- Node.js
-- TypeScript
-- Express
-- Prisma
-- PostgreSQL (Supabase)
-- JWT Authentication
+O projeto suporta diferentes modos de operação:
 
-## Requisitos
+1. **Produção**: Conecta-se diretamente ao banco Supabase
+2. **Desenvolvimento com banco real**: Conecta-se ao Supabase com keepalive
+3. **Desenvolvimento com mock**: Usa dados simulados sem conectar ao banco
 
-- Node.js 16+
-- npm 7+
-- PostgreSQL 14+
+## Pré-requisitos
+
+- Node.js 18+
+- NPM ou Yarn
 
 ## Instalação
 
-1. Clone o repositório:
-
 ```bash
+# Clonar o repositório
 git clone https://github.com/Limaeduardo7/novobackgrajau.git
 cd novobackgrajau
-```
 
-2. Instale as dependências:
-
-```bash
+# Instalar dependências
 npm install
+
+# Construir o projeto
+npm run build
 ```
 
-3. Configure as variáveis de ambiente:
+## Variáveis de Ambiente
+
+Copie o arquivo `.env.example` para `.env` e configure as variáveis:
 
 ```bash
 cp .env.example .env
 ```
 
-4. Edite o arquivo `.env` com suas credenciais.
+Principais variáveis:
 
-5. Gere o cliente Prisma:
+- `NODE_ENV`: Ambiente (development/production)
+- `PORT`: Porta do servidor (padrão: 3000)
+- `USE_MOCK_SERVICES`: Habilita serviços mock (true/false)
+- `DATABASE_USE_LOCAL`: Usa banco local em desenvolvimento (true/false)
+
+## Executando o Servidor
+
+### Modo Produção
 
 ```bash
-npx prisma generate
+npm start
 ```
 
-6. Inicie o servidor em desenvolvimento:
+### Modo Desenvolvimento (com banco real)
 
 ```bash
 npm run dev
 ```
 
-## Implantação em Produção
-
-1. Configure o arquivo `.env.production`
-2. Execute o script de implantação:
+### Modo Desenvolvimento (com mock)
 
 ```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-Alternativamente, siga os passos manualmente:
-
-```bash
-git pull origin master
-npm install
-cp .env.production .env
-npx prisma generate
-npm run build
-pm2 restart novobackgrajau || pm2 start dist/src/server.js --name novobackgrajau
+npm run dev:mock
 ```
 
 ## Estrutura do Projeto
 
 ```
-src/
-├── controllers/      # Controladores da API
-├── middlewares/      # Middlewares Express
-├── models/           # Modelos de dados
-├── routes/           # Rotas da API
-├── services/         # Serviços de negócios
-├── types/            # Definições de tipos TypeScript
-├── utils/            # Funções utilitárias
-└── server.ts         # Ponto de entrada da aplicação
+/src
+  /config      - Configurações da aplicação
+  /controllers - Controladores da API
+  /lib         - Bibliotecas e utilitários
+  /middlewares - Middlewares Express
+  /routes      - Rotas da API
+  /services    - Serviços de negócio
+  /types       - Definições de tipos TypeScript
 ```
+
+## Problema de Conexão com Supabase Local
+
+O acesso ao banco de dados Supabase pode falhar em ambiente de desenvolvimento local por restrições de rede. Opções para solucionar:
+
+1. Use o modo mock para desenvolvimento: `USE_MOCK_SERVICES=true`
+2. Configure um banco de dados PostgreSQL local
+3. Solicite à equipe do Supabase permissões específicas de IP para desenvolvimento
 
 ## API Endpoints
 
-### Autenticação
+### Posts
+- GET `/api/blog/posts` - Listar posts
+- GET `/api/blog/posts/:id` - Obter post por ID
+- POST `/api/blog/posts` - Criar post
+- PUT `/api/blog/posts/:id` - Atualizar post
+- DELETE `/api/blog/posts/:id` - Remover post
 
-- `POST /api/auth/login` - Login de usuário
-- `POST /api/auth/register` - Registro de usuário
-- `POST /api/auth/refresh-token` - Renovar token
+### Categorias
+- GET `/api/blog/categories` - Listar categorias
+- POST `/api/blog/categories` - Criar categoria
+- PUT `/api/blog/categories/:id` - Atualizar categoria
+- DELETE `/api/blog/categories/:id` - Remover categoria
 
-### Blog
-
-#### Categorias
-
-- `GET /api/blog/categories` - Listar categorias
-- `GET /api/blog/categories/:id` - Obter categoria
-- `POST /api/blog/categories` - Criar categoria
-- `PUT /api/blog/categories/:id` - Atualizar categoria
-- `DELETE /api/blog/categories/:id` - Excluir categoria
-
-#### Tags
-
-- `GET /api/blog/tags` - Listar tags
-- `GET /api/blog/tags/:id` - Obter tag
-- `POST /api/blog/tags` - Criar tag
-- `PUT /api/blog/tags/:id` - Atualizar tag
-- `DELETE /api/blog/tags/:id` - Excluir tag
-
-#### Posts
-
-- `GET /api/blog/posts` - Listar posts
-- `GET /api/blog/posts/:id` - Obter post
-- `POST /api/blog/posts` - Criar post
-- `PUT /api/blog/posts/:id` - Atualizar post
-- `DELETE /api/blog/posts/:id` - Excluir post
-
-### Usuários
-
-- `GET /api/users` - Listar usuários
-- `GET /api/users/:id` - Obter usuário
-- `POST /api/users` - Criar usuário
-- `PUT /api/users/:id` - Atualizar usuário
-- `DELETE /api/users/:id` - Excluir usuário
-
-## Banco de Dados
-
-O projeto utiliza Prisma ORM com PostgreSQL hospedado no Supabase. A estrutura do banco de dados está definida em `prisma/schema.prisma`.
-
-Para aplicar migrações:
-
-```bash
-npx prisma migrate dev
-```
-
-Em produção:
-
-```bash
-npx prisma migrate deploy
-```
-
-## Permissões Supabase
-
-Para configurar as permissões corretas no Supabase:
-
-```sql
--- Conceder acesso à roles de serviço para todas as tabelas no schema public
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO service_role;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO service_role;
-GRANT ALL PRIVILEGES ON SCHEMA public TO service_role;
-```
-
-## Correção de Erro de CategoryId Nulo
-
-Se você encontrar o seguinte erro:
-
-```
-Invalid `prisma.blogPost.findMany()` invocation:
-Error converting field "categoryId" of expected non-nullable type "String", found incompatible value of "null".
-```
-
-Isso ocorre porque existem posts no banco de dados com `categoryId` nulo, mas o Prisma está tentando processar esses registros.
-
-### Solução Implementada
-
-1. **Migração para Novo Serviço**: Criamos um novo serviço `BlogPrismaService` que substitui o `BlogSupabaseService` e usa corretamente os modelos do Prisma.
-
-2. **Script de Correção**: Foi criado um script para corrigir registros existentes com `categoryId` nulo.
-
-3. **Mapeamento Prisma Atualizado**: Configuramos o modelo `Post` do Prisma para mapear para a tabela `BlogPost` no Supabase:
-   ```prisma
-   model Post {
-     // ...campos do modelo
-     @@map("BlogPost")
-   }
-   ```
-   Isso resolve a discrepância entre o nome do modelo no Prisma e o nome da tabela no Supabase.
-
-### Como Executar o Script de Correção
-
-Execute o script no ambiente de produção:
-
-```bash
-node scripts/fix/fix-null-categories.js
-```
-
-Este script:
-- Cria uma categoria padrão chamada "Geral" (se ainda não existir)
-- Atualiza todos os posts com `categoryId` nulo para usar essa categoria padrão
-
-### Parâmetros Adicionados às APIs
-
-Para evitar problemas futuros, adicionamos dois novos parâmetros:
-
-1. `validCategoryOnly`: Quando `true`, só retorna posts com categoria válida (não nula)
-2. `allowNullCategory`: Quando `true`, permite criar/atualizar posts sem categoria
-
-Exemplo:
-```
-GET /api/blog/posts?validCategoryOnly=true
-```
-
-### Ao Atualizar Para Esta Versão
-
-Após fazer pull das alterações, execute:
-
-```bash
-npx prisma generate
-npm run build
-```
-
-Em seguida, reinicie o servidor:
-
-```bash
-pm2 restart backendgrajau
-```
+### Tags
+- GET `/api/blog/tags` - Listar tags
+- POST `/api/blog/tags` - Criar tag
+- PUT `/api/blog/tags/:id` - Atualizar tag
+- DELETE `/api/blog/tags/:id` - Remover tag
 
 ## Licença
 
-© 2023 Anunciar Grajaú. Todos os direitos reservados. 
+Este projeto é privado e proprietário.
+
+## Contato
+
+Para suporte, contate: (seu contato) 

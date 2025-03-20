@@ -458,4 +458,7 @@ export class BlogSupabaseService {
 
     return { message: 'Tag deletada com sucesso' };
   }
-} 
+}
+
+// Exportar uma instância singleton do serviço
+export default new BlogSupabaseService(); 

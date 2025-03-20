@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { errorHandler } from './middlewares/errorHandler';
 import { blogRoutes } from './routes/blog.routes';
+import systemRoutes from './routes/system.routes';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/public/blog/*', (req, res) => {
 
 // Rotas
 app.use('/api/blog', blogRoutes);
+app.use('/api/system', systemRoutes);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
