@@ -193,7 +193,7 @@ export class BlogPrismaService {
       }
       
       // Se o status de publicação mudou para true, atualizar publishedAt
-      if (data.published === true && existingPost && !existingPost.publishedAt) {
+      if (data.published === true && !existingPost.publishedAt) {
         updateData.publishedAt = new Date();
       } else if (data.published === false) {
         updateData.publishedAt = null;
@@ -246,7 +246,7 @@ export class BlogPrismaService {
         data: {
           name: data.name,
           slug,
-          description: data.description
+          description: data.description || null
         }
       }));
       
@@ -312,7 +312,7 @@ export class BlogPrismaService {
         data: {
           name: data.name,
           slug,
-          description: data.description
+          description: data.description || null
         }
       }));
       

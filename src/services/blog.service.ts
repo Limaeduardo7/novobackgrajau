@@ -51,17 +51,20 @@ export class BlogService {
     const total = await prisma.blogPost.count({ where });
     const totalPages = Math.ceil(total / limit);
 
-    const posts = await prisma.blogPost.findMany({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: {
-        [sortBy]: order
-      },
-      include: {
-        category: true
-      }
-    });
+    const [posts, totalPosts] = await Promise.all([
+      prisma.blogPost.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          [sortBy]: order
+        },
+        include: {
+          category: true
+        }
+      }),
+      prisma.blogPost.count({ where })
+    ]);
 
     return {
       data: posts,
