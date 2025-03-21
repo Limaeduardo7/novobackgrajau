@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
-import { BlogSupabaseService } from '../services/blog.supabase.service';
+import BlogService from '../services/blog.factory';
 import { AppError } from '../middlewares/errorHandler';
-
-// Instanciar o serviço
-const blogService = new BlogSupabaseService();
 
 export class BlogController {
   // Posts
@@ -22,7 +19,7 @@ export class BlogController {
         order: (req.query.order as 'asc' | 'desc' | undefined) || 'desc'
       };
 
-      const result = await blogService.getPosts(params);
+      const result = await BlogService.getPosts(params);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -36,7 +33,7 @@ export class BlogController {
   async getPostById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.getPostById(id);
+      const result = await BlogService.getPostById(id);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -49,7 +46,7 @@ export class BlogController {
 
   async createPost(req: Request, res: Response) {
     try {
-      const result = await blogService.createPost(req.body);
+      const result = await BlogService.createPost(req.body);
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -63,7 +60,7 @@ export class BlogController {
   async updatePost(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.updatePost(id, req.body);
+      const result = await BlogService.updatePost(id, req.body);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -77,7 +74,7 @@ export class BlogController {
   async deletePost(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.deletePost(id);
+      const result = await BlogService.deletePost(id);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -91,7 +88,7 @@ export class BlogController {
   // Categories
   async getCategories(req: Request, res: Response) {
     try {
-      const result = await blogService.getCategories();
+      const result = await BlogService.getCategories();
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -104,7 +101,7 @@ export class BlogController {
 
   async createCategory(req: Request, res: Response) {
     try {
-      const result = await blogService.createCategory(req.body);
+      const result = await BlogService.createCategory(req.body);
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -118,7 +115,7 @@ export class BlogController {
   async updateCategory(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.updateCategory(id, req.body);
+      const result = await BlogService.updateCategory(id, req.body);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -132,7 +129,7 @@ export class BlogController {
   async deleteCategory(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.deleteCategory(id);
+      const result = await BlogService.deleteCategory(id);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -146,7 +143,7 @@ export class BlogController {
   // Tags
   async getTags(req: Request, res: Response) {
     try {
-      const result = await blogService.getTags();
+      const result = await BlogService.getTags();
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -159,7 +156,7 @@ export class BlogController {
 
   async createTag(req: Request, res: Response) {
     try {
-      const result = await blogService.createTag(req.body);
+      const result = await BlogService.createTag(req.body);
       res.status(201).json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -173,7 +170,7 @@ export class BlogController {
   async updateTag(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.updateTag(id, req.body);
+      const result = await BlogService.updateTag(id, req.body);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -187,7 +184,7 @@ export class BlogController {
   async deleteTag(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const result = await blogService.deleteTag(id);
+      const result = await BlogService.deleteTag(id);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
