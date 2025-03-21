@@ -59,7 +59,7 @@ export class BlogPrismaService {
       }
 
       // Executar query com retry
-      const [posts, total] = await Promise.all([
+      const [posts, totalCount] = await Promise.all([
         retry(() => prisma.blogPost.findMany({
           where,
           skip: (page - 1) * limit,
@@ -68,6 +68,8 @@ export class BlogPrismaService {
         })),
         retry(() => prisma.blogPost.count({ where }))
       ]);
+
+      const total = totalCount as number;
 
       return {
         data: posts,
@@ -123,7 +125,7 @@ export class BlogPrismaService {
       // Se categoryId estiver definido, verificar se a categoria existe
       if (data.categoryId) {
         const category = await retry(() => prisma.category.findUnique({
-          where: { id: data.categoryId }
+          where: { id: data.categoryId || undefined }
         }));
         
         if (!category) {
@@ -171,7 +173,7 @@ export class BlogPrismaService {
       // Se categoryId estiver definido, verificar se a categoria existe
       if (data.categoryId) {
         const category = await retry(() => prisma.category.findUnique({
-          where: { id: data.categoryId }
+          where: { id: data.categoryId || undefined }
         }));
         
         if (!category) {
@@ -191,7 +193,7 @@ export class BlogPrismaService {
       }
       
       // Se o status de publicação mudou para true, atualizar publishedAt
-      if (data.published === true && !existingPost.publishedAt) {
+      if (data.published === true && existingPost && !existingPost.publishedAt) {
         updateData.publishedAt = new Date();
       } else if (data.published === false) {
         updateData.publishedAt = null;
@@ -243,8 +245,7 @@ export class BlogPrismaService {
       const category = await retry(() => prisma.category.create({
         data: {
           name: data.name,
-          slug,
-          description: data.description
+          slug
         }
       }));
       
@@ -312,8 +313,7 @@ export class BlogPrismaService {
       const tag = await retry(() => prisma.tag.create({
         data: {
           name: data.name,
-          slug,
-          description: data.description
+          slug
         }
       }));
       

@@ -3,18 +3,15 @@ export interface Post {
   title: string;
   slug: string;
   content: string;
-  excerpt: string;
-  image?: string;
+  image?: string | null;
   published: boolean;
-  publishedAt?: Date;
+  publishedAt: Date | null;
   featured: boolean;
-  authorId: string;
-  categoryId?: string | null;
-  tags?: string[];
+  authorId: string | null;
+  categoryId: string | null;
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
-  author?: User;
-  category?: Category;
 }
 
 export interface Category {
