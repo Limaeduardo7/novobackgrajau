@@ -1,8 +1,10 @@
-import { PaginationParams, Post, Category, Tag } from '../types/blog';
-import prisma from '../lib/prisma';
-import { AppError } from '../middlewares/errorHandler';
+import { PrismaClient } from '@prisma/client';
 import slugify from 'slugify';
-import { Prisma } from '@prisma/client';
+import { AppError } from '../middlewares/errorHandler';
+import { PaginationParams, Post, Category, Tag } from '../types/blog';
+import retry from '../utils/retry';
+
+const prisma = new PrismaClient();
 
 export class BlogPrismaService {
   // Posts
@@ -21,84 +23,64 @@ export class BlogPrismaService {
       validCategoryOnly = false
     } = params;
 
-    const skip = (page - 1) * limit;
-
-    // Construir o objeto where base
-    const whereBase: any = {
-      ...(published !== undefined && { published }),
-      ...(featured !== undefined && { featured }),
-      ...(categoryId && { categoryId }),
-      ...(authorId && { authorId }),
-    };
-    
-    // Se validCategoryOnly for true, adicionar condição para filtrar posts com categoryId nulo
-    if (validCategoryOnly === true) {
-      whereBase.categoryId = { not: null };
-    }
-    
-    // Adicionar condições de tags se necessário
-    if (tags?.length) {
-      whereBase.tags = {
-        some: {
-          tagId: {
-            in: tags
-          }
-        }
-      };
-    }
-    
-    // Adicionar condições de busca se necessário
-    if (search) {
-      whereBase.OR = [
-        {
-          title: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        },
-        {
-          content: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        }
-      ];
-    }
-
-    // Usar o objeto where diretamente sem tipagem explícita
     try {
-      const total = await prisma.post.count({ where: whereBase });
-      const totalPages = Math.ceil(total / limit);
-  
-      const posts = await prisma.post.findMany({
-        where: whereBase,
-        skip,
-        take: limit,
-        orderBy: {
-          [sortBy]: order
-        },
-        include: {
-          category: true,
-          tags: {
-            include: {
-              tag: true
-            }
-          }
-        }
-      });
-  
+      // Construir where clause
+      const where: any = {};
+      
+      if (published !== undefined) {
+        where.published = published;
+      }
+      
+      if (featured !== undefined) {
+        where.featured = featured;
+      }
+      
+      if (categoryId) {
+        where.categoryId = categoryId;
+      }
+      
+      if (validCategoryOnly) {
+        where.categoryId = { not: null };
+      }
+      
+      if (authorId) {
+        where.authorId = authorId;
+      }
+      
+      if (search) {
+        where.OR = [
+          { title: { contains: search, mode: 'insensitive' } },
+          { content: { contains: search, mode: 'insensitive' } }
+        ];
+      }
+      
+      if (tags && tags.length > 0) {
+        where.tags = { hasEvery: tags };
+      }
+
+      // Executar query com retry
+      const [posts, total] = await Promise.all([
+        retry(() => prisma.blogPost.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: { [sortBy]: order }
+        })),
+        retry(() => prisma.blogPost.count({ where }))
+      ]);
+
       return {
         data: posts,
         pagination: {
           total,
           page,
           limit,
-          totalPages
+          totalPages: Math.ceil(total / limit)
         }
       };
-    } catch (error) {
-      console.error("Falha ao buscar posts do blog:", error);
-      throw new AppError(500, "Erro ao buscar posts. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      console.error('Falha ao buscar posts do blog:', error);
+      throw new AppError(500, error.message);
     }
   }
 
@@ -106,340 +88,277 @@ export class BlogPrismaService {
     const { validCategoryOnly = false } = options;
     
     try {
-      // Construir o objeto where base
-      const whereBase: any = { id };
-      
-      // Se validCategoryOnly for true, adicionar condição para filtrar posts com categoryId nulo
-      if (validCategoryOnly === true) {
-        whereBase.categoryId = { not: null };
+      const where: any = { id };
+      if (validCategoryOnly) {
+        where.categoryId = { not: null };
       }
       
-      const post = await prisma.post.findFirst({
-        where: whereBase,
-        include: {
-          category: true,
-          tags: {
-            include: {
-              tag: true
-            }
-          }
-        }
-      });
-  
+      const post = await retry(() => prisma.blogPost.findFirst({ where }));
+      
       if (!post) {
         throw new AppError(404, 'Post não encontrado');
       }
-  
+      
       return { data: post };
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      console.error("Erro ao buscar post por ID:", error);
-      throw new AppError(500, "Erro ao buscar post. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, error.message);
     }
   }
 
   async createPost(data: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>, options: { allowNullCategory?: boolean } = {}) {
-    const { allowNullCategory = false } = options;
-    
     try {
+      const { allowNullCategory = false } = options;
+      
       // Validar dados obrigatórios
       if (!data.title || typeof data.title !== 'string') {
         throw new AppError(400, 'Título é obrigatório e deve ser uma string');
       }
-  
-      if (!data.authorId) {
-        throw new AppError(400, 'ID do autor é obrigatório');
-      }
       
       // Verificar se categoryId está presente quando necessário
-      if (!allowNullCategory && (data.categoryId === null || data.categoryId === undefined)) {
+      if (!allowNullCategory && !data.categoryId) {
         throw new AppError(400, 'ID da categoria é obrigatório');
-      }
-      
-      // Verificar se o autor existe
-      const author = await prisma.user.findUnique({
-        where: { id: data.authorId }
-      });
-  
-      if (!author) {
-        throw new AppError(400, 'Autor não encontrado. ID fornecido: ' + data.authorId);
       }
       
       // Se categoryId estiver definido, verificar se a categoria existe
       if (data.categoryId) {
-        const category = await prisma.category.findUnique({
+        const category = await retry(() => prisma.category.findUnique({
           where: { id: data.categoryId }
-        });
-          
+        }));
+        
         if (!category) {
-          throw new AppError(400, 'Categoria não encontrada. ID fornecido: ' + data.categoryId);
+          throw new AppError(400, 'Categoria não encontrada');
         }
       }
       
-      const postData: any = {
-        title: data.title,
-        content: data.content,
-        excerpt: data.excerpt || data.content.substring(0, 200),
-        image: data.image,
-        published: data.published,
-        featured: data.featured,
-        authorId: data.authorId,
-        slug: slugify(data.title, { lower: true, strict: true }),
-        tags: data.tags ? {
-          create: data.tags.map(tagId => ({
-            tag: {
-              connect: { id: tagId }
-            }
-          }))
-        } : undefined
-      };
-  
-      if (data.categoryId) {
-        postData.categoryId = data.categoryId;
-      }
-  
-      const post = await prisma.post.create({
-        data: postData,
-        include: {
-          category: true,
-          tags: {
-            include: {
-              tag: true
-            }
-          }
+      // Gerar slug
+      const slug = slugify(data.title, { lower: true, strict: true });
+      
+      // Criar post
+      const post = await retry(() => prisma.blogPost.create({
+        data: {
+          title: data.title,
+          slug,
+          content: data.content || '',
+          image: data.image,
+          published: data.published || false,
+          publishedAt: data.published ? new Date() : null,
+          featured: data.featured || false,
+          authorId: data.authorId || null,
+          categoryId: data.categoryId || null,
+          tags: data.tags || []
         }
-      });
-  
+      }));
+      
       return { data: post, message: 'Post criado com sucesso' };
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      console.error("Erro ao criar post:", error);
-      throw new AppError(500, "Erro ao criar post. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, error.message);
     }
   }
 
-  async updatePost(id: string, data: Partial<Post>, options: { allowNullCategory?: boolean } = {}) {
-    const { allowNullCategory = false } = options;
-    
+  async updatePost(id: string, data: Partial<Post>) {
     try {
-      const existingPost = await prisma.post.findUnique({
-        where: { id },
-        include: {
-          tags: true
-        }
-      });
-  
+      // Verificar se o post existe
+      const existingPost = await retry(() => prisma.blogPost.findUnique({
+        where: { id }
+      }));
+      
       if (!existingPost) {
         throw new AppError(404, 'Post não encontrado');
       }
       
-      // Verificar se a atualização está tentando definir categoryId como nulo
-      if (!allowNullCategory && data.categoryId === null) {
-        throw new AppError(400, 'Não é permitido definir categoryId como nulo');
+      // Se categoryId estiver definido, verificar se a categoria existe
+      if (data.categoryId) {
+        const category = await retry(() => prisma.category.findUnique({
+          where: { id: data.categoryId }
+        }));
+        
+        if (!category) {
+          throw new AppError(400, 'Categoria não encontrada');
+        }
       }
-  
+      
+      // Preparar dados para atualização
       const updateData: any = {
-        ...(data.title && {
-          title: data.title,
-          slug: slugify(data.title, { lower: true, strict: true })
-        }),
-        ...(data.content && {
-          content: data.content,
-          excerpt: data.excerpt || data.content.substring(0, 200)
-        }),
-        ...(data.image !== undefined && { image: data.image }),
-        ...(data.published !== undefined && {
-          published: data.published,
-          ...(data.published ? { publishedAt: new Date() } : {})
-        }),
-        ...(data.featured !== undefined && { featured: data.featured }),
-        ...(data.authorId && { authorId: data.authorId }),
-        ...(data.tags && {
-          tags: {
-            deleteMany: {},
-            create: data.tags.map(tagId => ({
-              tag: {
-                connect: { id: tagId }
-              }
-            }))
-          }
-        }),
+        ...data,
         updatedAt: new Date()
       };
-  
-      if (data.categoryId !== undefined) {
-        updateData.categoryId = data.categoryId;
+      
+      // Se o título foi atualizado, gerar novo slug
+      if (data.title) {
+        updateData.slug = slugify(data.title, { lower: true, strict: true });
       }
-  
-      const post = await prisma.post.update({
+      
+      // Se o status de publicação mudou para true, atualizar publishedAt
+      if (data.published === true && !existingPost.publishedAt) {
+        updateData.publishedAt = new Date();
+      } else if (data.published === false) {
+        updateData.publishedAt = null;
+      }
+      
+      // Atualizar post
+      const post = await retry(() => prisma.blogPost.update({
         where: { id },
-        data: updateData,
-        include: {
-          category: true,
-          tags: {
-            include: {
-              tag: true
-            }
-          }
-        }
-      });
-  
+        data: updateData
+      }));
+      
       return { data: post, message: 'Post atualizado com sucesso' };
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      console.error("Erro ao atualizar post:", error);
-      throw new AppError(500, "Erro ao atualizar post. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, error.message);
     }
   }
 
   async deletePost(id: string) {
     try {
-      await prisma.post.delete({
+      await retry(() => prisma.blogPost.delete({
         where: { id }
-      });
-  
+      }));
+      
       return { message: 'Post deletado com sucesso' };
-    } catch (error) {
-      console.error("Erro ao deletar post:", error);
-      throw new AppError(500, "Erro ao deletar post. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      throw new AppError(500, error.message);
     }
   }
 
   // Categories
   async getCategories() {
     try {
-      const categories = await prisma.category.findMany({
-        include: {
-          _count: {
-            select: { posts: true }
-          }
-        }
-      });
-  
+      const categories = await retry(() => prisma.category.findMany());
       return { data: categories };
-    } catch (error) {
-      console.error("Erro ao buscar categorias:", error);
-      throw new AppError(500, "Erro ao buscar categorias. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      throw new AppError(500, error.message);
     }
   }
 
   async createCategory(data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) {
     try {
-      const slug = slugify(data.name, { lower: true });
+      if (!data.name || typeof data.name !== 'string') {
+        throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
+      }
       
-      const category = await prisma.category.create({
+      const slug = slugify(data.name, { lower: true, strict: true });
+      
+      const category = await retry(() => prisma.category.create({
         data: {
-          ...data,
-          slug
+          name: data.name,
+          slug,
+          description: data.description
         }
-      });
-  
+      }));
+      
       return { data: category, message: 'Categoria criada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao criar categoria:", error);
-      throw new AppError(500, "Erro ao criar categoria. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new AppError(400, 'Já existe uma categoria com este nome');
+      }
+      throw new AppError(500, error.message);
     }
   }
 
   async updateCategory(id: string, data: Partial<Category>) {
     try {
-      const category = await prisma.category.update({
+      const updateData: any = { ...data };
+      
+      if (data.name) {
+        updateData.slug = slugify(data.name, { lower: true, strict: true });
+      }
+      
+      const category = await retry(() => prisma.category.update({
         where: { id },
-        data: {
-          ...data,
-          ...(data.name && { slug: slugify(data.name, { lower: true }) })
-        }
-      });
-  
+        data: updateData
+      }));
+      
       return { data: category, message: 'Categoria atualizada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao atualizar categoria:", error);
-      throw new AppError(500, "Erro ao atualizar categoria. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new AppError(400, 'Já existe uma categoria com este nome');
+      }
+      throw new AppError(500, error.message);
     }
   }
 
   async deleteCategory(id: string) {
     try {
-      await prisma.category.delete({
+      await retry(() => prisma.category.delete({
         where: { id }
-      });
-  
+      }));
+      
       return { message: 'Categoria deletada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao deletar categoria:", error);
-      throw new AppError(500, "Erro ao deletar categoria. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      throw new AppError(500, error.message);
     }
   }
 
   // Tags
   async getTags() {
     try {
-      const tags = await prisma.tag.findMany({
-        include: {
-          _count: {
-            select: { posts: true }
-          }
-        }
-      });
-  
+      const tags = await retry(() => prisma.tag.findMany());
       return { data: tags };
-    } catch (error) {
-      console.error("Erro ao buscar tags:", error);
-      throw new AppError(500, "Erro ao buscar tags. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      throw new AppError(500, error.message);
     }
   }
 
   async createTag(data: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>) {
     try {
-      const slug = slugify(data.name, { lower: true });
+      if (!data.name || typeof data.name !== 'string') {
+        throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
+      }
       
-      const tag = await prisma.tag.create({
+      const slug = slugify(data.name, { lower: true, strict: true });
+      
+      const tag = await retry(() => prisma.tag.create({
         data: {
-          ...data,
-          slug
+          name: data.name,
+          slug,
+          description: data.description
         }
-      });
-  
+      }));
+      
       return { data: tag, message: 'Tag criada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao criar tag:", error);
-      throw new AppError(500, "Erro ao criar tag. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new AppError(400, 'Já existe uma tag com este nome');
+      }
+      throw new AppError(500, error.message);
     }
   }
 
   async updateTag(id: string, data: Partial<Tag>) {
     try {
-      const tag = await prisma.tag.update({
+      const updateData: any = { ...data };
+      
+      if (data.name) {
+        updateData.slug = slugify(data.name, { lower: true, strict: true });
+      }
+      
+      const tag = await retry(() => prisma.tag.update({
         where: { id },
-        data: {
-          ...data,
-          ...(data.name && { slug: slugify(data.name, { lower: true }) })
-        }
-      });
-  
+        data: updateData
+      }));
+      
       return { data: tag, message: 'Tag atualizada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao atualizar tag:", error);
-      throw new AppError(500, "Erro ao atualizar tag. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        throw new AppError(400, 'Já existe uma tag com este nome');
+      }
+      throw new AppError(500, error.message);
     }
   }
 
   async deleteTag(id: string) {
     try {
-      await prisma.tag.delete({
+      await retry(() => prisma.tag.delete({
         where: { id }
-      });
-  
+      }));
+      
       return { message: 'Tag deletada com sucesso' };
-    } catch (error) {
-      console.error("Erro ao deletar tag:", error);
-      throw new AppError(500, "Erro ao deletar tag. Verifique os logs para mais detalhes.");
+    } catch (error: any) {
+      throw new AppError(500, error.message);
     }
   }
-} 
+}
+
+export default new BlogPrismaService(); 
