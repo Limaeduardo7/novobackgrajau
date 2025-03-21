@@ -5,15 +5,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
 
-if (!supabaseUrl || !supabaseServiceRole) {
-  console.error('Erro: SUPABASE_URL e SUPABASE_SERVICE_ROLE são obrigatórios');
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Erro: SUPABASE_URL e SUPABASE_KEY são obrigatórios');
   process.exit(1);
 }
 
-// Criar cliente Supabase com a service role key
-const supabase = createClient(supabaseUrl, supabaseServiceRole, {
+// Criar cliente Supabase com a chave pública/anônima
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
