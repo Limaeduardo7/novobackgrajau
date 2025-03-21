@@ -6,6 +6,7 @@ import { PaginationParams, Post, Category, Tag } from '../types/blog';
 export class BlogSupabaseService {
   // Posts
   async getPosts(params: PaginationParams) {
+    console.log('Iniciando getPosts com params:', params);
     const {
       page = 1,
       limit = 10,
@@ -24,6 +25,8 @@ export class BlogSupabaseService {
     let query = supabase
       .from('BlogPost')
       .select('*');
+
+    console.log('Query inicial construída');
 
     // Aplicar filtros
     if (published !== undefined) {
@@ -53,9 +56,10 @@ export class BlogSupabaseService {
     
     // Filtro de tags (agora são arrays diretamente)
     if (tags && tags.length > 0) {
-      // Usando filtro de sobreposição de array
       query = query.contains('tags', tags);
     }
+
+    console.log('Filtros aplicados à query');
 
     // Contagem total para paginação
     const countQuery = supabase
@@ -67,7 +71,15 @@ export class BlogSupabaseService {
       countQuery.not('categoryId', 'is', null);
     }
     
-    const { count } = await countQuery;
+    console.log('Executando query de contagem...');
+    const { count, error: countError } = await countQuery;
+    
+    if (countError) {
+      console.error('Erro na query de contagem:', countError);
+      throw new AppError(500, `Erro na contagem: ${countError.message}`);
+    }
+
+    console.log('Total de posts encontrados:', count);
 
     // Paginação
     const total = count || 0;
@@ -75,14 +87,18 @@ export class BlogSupabaseService {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
+    console.log('Executando query principal...');
     // Ordenação e limite
     const { data, error } = await query
       .order(sortBy, { ascending: order === 'asc' })
       .range(from, to);
 
     if (error) {
-      throw new AppError(500, error.message);
+      console.error('Erro na query principal:', error);
+      throw new AppError(500, `Erro na consulta: ${error.message} (Código: ${error.code})`);
     }
+
+    console.log(`Query executada com sucesso. Retornando ${data?.length || 0} posts`);
 
     return {
       data: data || [],
