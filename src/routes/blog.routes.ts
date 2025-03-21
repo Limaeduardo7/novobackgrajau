@@ -5,6 +5,58 @@ import { requireAuth, checkPermission } from '../middlewares/auth';
 const router = Router();
 const blogController = new BlogController();
 
+// Rota de debug para verificar os tokens
+router.post('/debug-token', (req, res) => {
+  const headers = req.headers;
+  const body = req.body;
+  
+  console.log('====== DEBUG TOKEN ======');
+  console.log('Headers:', JSON.stringify(headers, null, 2));
+  console.log('Body:', JSON.stringify(body, null, 2));
+  console.log('========================');
+  
+  // Envie informações sobre quais tokens seriam aceitos
+  const adminToken = process.env.ADMIN_TOKEN;
+  const formattedAdminToken = adminToken ? `Bearer ${adminToken}` : 'Não configurado';
+  
+  // Verificar se o token fornecido é válido
+  const authHeader = req.headers.authorization || req.headers['x-authorization'];
+  const isValidAdminToken = authHeader === formattedAdminToken || 
+                            authHeader === adminToken ||
+                            req.body.token === adminToken;
+  
+  // Verificar o tipo de token
+  let tokenType = 'None';
+  if (authHeader) {
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      tokenType = 'Bearer';
+    } else {
+      tokenType = 'Direct';
+    }
+  }
+  
+  res.json({
+    received: {
+      headers: {
+        authorization: headers.authorization,
+        'x-authorization': headers['x-authorization'],
+        'x-api-key': headers['x-api-key']
+      },
+      bodyToken: body.token
+    },
+    expectedFormat: {
+      authorization: `Bearer ${adminToken?.substring(0, 15)}...`,
+      'x-authorization': `Bearer ${adminToken?.substring(0, 15)}...`,
+      'x-api-key': process.env.TEMPORARY_API_KEY,
+      bodyToken: `${adminToken?.substring(0, 15)}...`
+    },
+    tokenValidation: {
+      isValidToken: isValidAdminToken,
+      tokenType: tokenType
+    }
+  });
+});
+
 // Rota de teste de autenticação
 router.get('/auth-test', requireAuth, (req: any, res) => {
   res.json({ 
