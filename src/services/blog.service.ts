@@ -20,20 +20,14 @@ export class BlogService {
       order = 'desc'
     } = params;
 
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.PostWhereInput = {
+    const where: Prisma.BlogPostWhereInput = {
       ...(published !== undefined && { published }),
       ...(featured !== undefined && { featured }),
       ...(categoryId && { categoryId }),
       ...(authorId && { authorId }),
-      ...(tags?.length && {
+      ...(tags && tags.length > 0 && {
         tags: {
-          some: {
-            tagId: {
-              in: tags
-            }
-          }
+          hasEvery: tags
         }
       }),
       ...(search && {
@@ -54,23 +48,18 @@ export class BlogService {
       })
     };
 
-    const total = await prisma.post.count({ where });
+    const total = await prisma.blogPost.count({ where });
     const totalPages = Math.ceil(total / limit);
 
-    const posts = await prisma.post.findMany({
+    const posts = await prisma.blogPost.findMany({
       where,
-      skip,
+      skip: (page - 1) * limit,
       take: limit,
       orderBy: {
         [sortBy]: order
       },
       include: {
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
+        category: true
       }
     });
 
@@ -86,15 +75,10 @@ export class BlogService {
   }
 
   async getPostById(id: string) {
-    const post = await prisma.post.findUnique({
+    const post = await prisma.blogPost.findUnique({
       where: { id },
       include: {
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
+        category: true
       }
     });
 
@@ -109,34 +93,22 @@ export class BlogService {
     const postData: any = {
       title: data.title,
       content: data.content,
-      excerpt: data.excerpt || data.content.substring(0, 200),
       image: data.image,
       published: data.published,
       featured: data.featured,
       authorId: data.authorId,
       slug: slugify(data.title, { lower: true, strict: true }),
-      tags: data.tags ? {
-        create: data.tags.map(tagId => ({
-          tag: {
-            connect: { id: tagId }
-          }
-        }))
-      } : undefined
+      tags: data.tags || []
     };
 
     if (data.categoryId) {
       postData.categoryId = data.categoryId;
     }
 
-    const post = await prisma.post.create({
+    const post = await prisma.blogPost.create({
       data: postData,
       include: {
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
+        category: true
       }
     });
 
@@ -144,11 +116,8 @@ export class BlogService {
   }
 
   async updatePost(id: string, data: Partial<Post>) {
-    const existingPost = await prisma.post.findUnique({
-      where: { id },
-      include: {
-        tags: true
-      }
+    const existingPost = await prisma.blogPost.findUnique({
+      where: { id }
     });
 
     if (!existingPost) {
@@ -156,47 +125,19 @@ export class BlogService {
     }
 
     const updateData: any = {
-      ...(data.title && {
-        title: data.title,
-        slug: slugify(data.title, { lower: true, strict: true })
-      }),
-      ...(data.content && {
-        content: data.content,
-        excerpt: data.excerpt || data.content.substring(0, 200)
-      }),
-      ...(data.image && { image: data.image }),
-      ...(data.published !== undefined && {
-        published: data.published
-      }),
-      ...(data.featured !== undefined && { featured: data.featured }),
-      ...(data.authorId && { authorId: data.authorId }),
-      ...(data.tags && {
-        tags: {
-          deleteMany: {},
-          create: data.tags.map(tagId => ({
-            tag: {
-              connect: { id: tagId }
-            }
-          }))
-        }
-      }),
-      updatedAt: new Date()
+      ...data,
+      ...(data.title ? { slug: slugify(data.title, { lower: true, strict: true }) } : {})
     };
+    
+    delete updateData.id;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
 
-    if (data.categoryId !== undefined) {
-      updateData.categoryId = data.categoryId;
-    }
-
-    const post = await prisma.post.update({
+    const post = await prisma.blogPost.update({
       where: { id },
       data: updateData,
       include: {
-        category: true,
-        tags: {
-          include: {
-            tag: true
-          }
-        }
+        category: true
       }
     });
 
@@ -204,7 +145,7 @@ export class BlogService {
   }
 
   async deletePost(id: string) {
-    await prisma.post.delete({
+    await prisma.blogPost.delete({
       where: { id }
     });
 
@@ -259,15 +200,12 @@ export class BlogService {
 
   // Tags
   async getTags() {
-    const tags = await prisma.tag.findMany({
-      include: {
-        _count: {
-          select: { posts: true }
-        }
-      }
-    });
-
-    return { data: tags };
+    try {
+      const tags = await prisma.tag.findMany();
+      return { data: tags };
+    } catch (error: any) {
+      throw new AppError(500, error.message);
+    }
   }
 
   async createTag(data: Omit<Tag, 'id' | 'createdAt' | 'updatedAt'>) {

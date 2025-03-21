@@ -125,7 +125,7 @@ export class BlogPrismaService {
       // Se categoryId estiver definido, verificar se a categoria existe
       if (data.categoryId) {
         const category = await retry(() => prisma.category.findUnique({
-          where: { id: data.categoryId || undefined }
+          where: { id: data.categoryId as string }
         }));
         
         if (!category) {
@@ -173,7 +173,7 @@ export class BlogPrismaService {
       // Se categoryId estiver definido, verificar se a categoria existe
       if (data.categoryId) {
         const category = await retry(() => prisma.category.findUnique({
-          where: { id: data.categoryId || undefined }
+          where: { id: data.categoryId as string }
         }));
         
         if (!category) {
@@ -245,15 +245,13 @@ export class BlogPrismaService {
       const category = await retry(() => prisma.category.create({
         data: {
           name: data.name,
-          slug
+          slug,
+          description: data.description
         }
       }));
       
       return { data: category, message: 'Categoria criada com sucesso' };
     } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new AppError(400, 'Já existe uma categoria com este nome');
-      }
       throw new AppError(500, error.message);
     }
   }
@@ -313,15 +311,13 @@ export class BlogPrismaService {
       const tag = await retry(() => prisma.tag.create({
         data: {
           name: data.name,
-          slug
+          slug,
+          description: data.description
         }
       }));
       
       return { data: tag, message: 'Tag criada com sucesso' };
     } catch (error: any) {
-      if (error.code === 'P2002') {
-        throw new AppError(400, 'Já existe uma tag com este nome');
-      }
       throw new AppError(500, error.message);
     }
   }

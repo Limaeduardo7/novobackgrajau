@@ -1,4 +1,5 @@
 import { Category, Post, PaginatedResponse, PaginationParams, Tag, User, UserRole, UserStatus } from '../types/blog';
+import { AppError } from '../middlewares/errorHandler';
 
 // Função para gerar IDs únicos sem depender do pacote uuid
 function generateId(): string {
@@ -35,14 +36,11 @@ const mockPosts: Post[] = [
     title: 'Post de teste',
     slug: 'post-de-teste',
     content: 'Conteúdo do post de teste',
-    excerpt: 'Um resumo do post',
     published: true,
     featured: false,
     publishedAt: new Date(),
     authorId: '1',
     categoryId: '1',
-    author: mockUsers[0],
-    category: mockCategories[0],
     createdAt: new Date(),
     updatedAt: new Date(),
     tags: []
@@ -203,18 +201,17 @@ export class BlogMockService {
   }
 
   async getPostById(id: string, options: { validCategoryOnly?: boolean } = {}): Promise<{ data: Post }> {
+    const { validCategoryOnly } = options;
     await simulateNetworkDelay();
-    const { validCategoryOnly = false } = options;
     
-    const post = mockPosts.find(post => post.id === id);
+    const post = mockPosts.find(p => p.id === id);
     
     if (!post) {
-      throw new Error('Post não encontrado');
+      throw new AppError(404, 'Post não encontrado');
     }
     
-    // Se validCategoryOnly for true e o post não tiver categoria, lance um erro
-    if (validCategoryOnly && (!post.categoryId || !post.category)) {
-      throw new Error('Post com categoria inválida ou nula');
+    if (validCategoryOnly && !post.categoryId) {
+      throw new AppError(400, 'Post sem categoria válida');
     }
     
     return { data: post };
@@ -227,19 +224,17 @@ export class BlogMockService {
     const newPost: Post = {
       id: generateId(),
       title: data.title,
-      slug,
+      slug: slug,
       content: data.content,
-      excerpt: data.excerpt || '',
+      image: data.image,
       published: data.published || false,
+      publishedAt: data.published ? new Date() : null,
       featured: data.featured || false,
-      publishedAt: data.published ? new Date() : undefined,
       authorId: data.authorId || mockUsers[0].id,
       categoryId: data.categoryId,
       createdAt: new Date(),
       updatedAt: new Date(),
-      author: mockUsers.find(u => u.id === (data.authorId || mockUsers[0].id)) || mockUsers[0],
-      category: mockCategories.find(c => c.id === data.categoryId) || mockCategories[0],
-      tags: []
+      tags: data.tags || []
     };
     
     mockPosts.push(newPost);
@@ -256,11 +251,7 @@ export class BlogMockService {
       throw new Error('Post não encontrado');
     }
     
-    let updatedPost = {
-      ...mockPosts[index],
-      ...data,
-      updatedAt: new Date()
-    };
+    const updatedPost = { ...mockPosts[index], ...data, updatedAt: new Date() };
     
     if (data.title) {
       updatedPost.slug = data.title.toLowerCase().replace(/\s+/g, '-');
@@ -271,7 +262,7 @@ export class BlogMockService {
     }
     
     if (data.categoryId) {
-      updatedPost.category = mockCategories.find(c => c.id === data.categoryId) || updatedPost.category;
+      updatedPost.categoryId = data.categoryId;
     }
     
     mockPosts[index] = updatedPost;
