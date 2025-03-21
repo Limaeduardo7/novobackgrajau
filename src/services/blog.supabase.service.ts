@@ -148,34 +148,10 @@ export class BlogSupabaseService {
     if (!data.title || typeof data.title !== 'string') {
       throw new AppError(400, 'Título é obrigatório e deve ser uma string');
     }
-
-    if (!data.authorId) {
-      throw new AppError(400, 'ID do autor é obrigatório');
-    }
     
     // Verificar se categoryId está presente quando necessário
     if (!allowNullCategory && (data.categoryId === null || data.categoryId === undefined)) {
       throw new AppError(400, 'ID da categoria é obrigatório');
-    }
-    
-    // Verificar se o autor existe
-    const { data: author, error: authorError } = await supabase
-      .from('User')
-      .select('*')
-      .eq('id', data.authorId)
-      .single();
-
-    console.log('Autor encontrado:', author);
-    console.log('Erro ao buscar autor:', authorError);
-
-    if (authorError || !author) {
-      // Buscar todos os usuários para debug
-      const { data: allUsers } = await supabase
-        .from('User')
-        .select('id, email, role');
-      console.log('Usuários disponíveis:', allUsers);
-      
-      throw new AppError(400, 'Autor não encontrado. ID fornecido: ' + data.authorId);
     }
     
     // Se categoryId estiver definido, verificar se a categoria existe
@@ -208,7 +184,7 @@ export class BlogSupabaseService {
           published: data.published || false,
           publishedAt: publishedAt,
           featured: data.featured || false,
-          authorId: data.authorId,
+          authorId: data.authorId || null,
           categoryId: data.categoryId || null,
           tags: data.tags || []
         }])
