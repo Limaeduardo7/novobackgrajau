@@ -1,34 +1,39 @@
-// Configuração do banco de dados para diferentes ambientes
-export const getDatabaseUrl = () => {
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  // URL do Supabase (produção)
-  const supabaseUrl = "postgresql://postgres:%23Anunciar123@fqueaxdcuyrattmadkxx.supabase.co:5432/postgres?schema=public&keepalives=1&keepalives_idle=120&keepalives_interval=30&keepalives_count=15";
-  
-  // URL local para desenvolvimento (substituir com seu PostgreSQL local se disponível)
-  const localUrl = process.env.DATABASE_URL_LOCAL || "postgresql://postgres:postgres@localhost:5432/postgres?schema=public";
-  
-  // Use URL local em desenvolvimento se DATABASE_USE_LOCAL for definido como 'true'
-  if (isDevelopment && process.env.DATABASE_USE_LOCAL === 'true') {
-    console.log('Usando banco de dados local para desenvolvimento');
-    return localUrl;
-  }
-  
-  console.log('Usando banco de dados Supabase');
-  return supabaseUrl;
-};
+/**
+ * Configuração de conexão com banco de dados
+ */
 
-// Configuração para lidar com falhas de conexão graciosamente
-export const handleConnectionError = (error: any) => {
-  console.error('Erro ao conectar ao banco de dados:', error.message);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('Erro de conexão em ambiente de desenvolvimento. Isso pode ser esperado.');
-    console.warn('Para desenvolvimento local, considere:');
-    console.warn('1. Configurar um PostgreSQL local');
-    console.warn('2. Definir DATABASE_USE_LOCAL=true no seu .env');
-    console.warn('3. Usar consultas mockadas para testes sem banco de dados');
-  } else {
-    console.error('ERRO CRÍTICO: Falha na conexão com o banco em produção!');
+/**
+ * Obtém a URL do banco de dados com base no ambiente
+ */
+export function getDatabaseUrl(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error('DATABASE_URL não está definida nas variáveis de ambiente');
   }
-}; 
+  return url;
+}
+
+/**
+ * Trata erros de conexão com o banco de dados
+ */
+export function handleConnectionError(error: any): void {
+  console.error('Erro ao conectar com banco de dados:', error.message);
+  
+  // Log detalhado para diagnóstico
+  if (error.code) {
+    console.error(`Código do erro: ${error.code}`);
+  }
+  
+  if (error.meta && error.meta.details) {
+    console.error(`Detalhes: ${error.meta.details}`);
+  }
+  
+  // Tratamento específico por tipo de erro
+  if (error.message.includes('connect ECONNREFUSED')) {
+    console.error('O banco de dados parece estar offline ou inacessível. Verifique se o serviço está ativo.');
+  } else if (error.message.includes('authentication failed')) {
+    console.error('Falha na autenticação. Verifique as credenciais do banco de dados.');
+  } else if (error.message.includes('database') && error.message.includes('does not exist')) {
+    console.error('O banco de dados especificado não existe. Verifique o nome do banco na URL de conexão.');
+  }
+} 
