@@ -49,20 +49,36 @@ export class BlogController {
       console.log('Dados recebidos no POST:', JSON.stringify(req.body, null, 2));
       console.log('Headers recebidos:', JSON.stringify(req.headers, null, 2));
       
+      // Processamento e validação de tipos
+      const postData = {
+        title: req.body.title ? String(req.body.title).trim() : '',
+        content: req.body.content ? String(req.body.content).trim() : '',
+        slug: req.body.slug ? String(req.body.slug).trim() : `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+        categoryId: req.body.categoryId ? String(req.body.categoryId) : null,
+        tags: Array.isArray(req.body.tags) ? req.body.tags.map((tag: any) => String(tag)) : [],
+        published: req.body.published === true,
+        featured: req.body.featured === true,
+        publishedAt: req.body.publishedAt ? new Date(req.body.publishedAt) : null,
+        authorId: req.body.authorId ? String(req.body.authorId) : null,
+        image: req.body.image ? String(req.body.image) : null
+      };
+      
+      console.log('Dados processados após conversão de tipos:', JSON.stringify(postData, null, 2));
+      
       // Validar campos obrigatórios
-      if (!req.body.title) {
+      if (!postData.title) {
         return res.status(400).json({ error: 'Título é obrigatório' });
       }
       
-      if (!req.body.content) {
+      if (!postData.content) {
         return res.status(400).json({ error: 'Conteúdo é obrigatório' });
       }
       
-      if (!req.body.categoryId) {
+      if (!postData.categoryId) {
         return res.status(400).json({ error: 'ID da categoria é obrigatório' });
       }
       
-      const result = await BlogService.createPost(req.body);
+      const result = await BlogService.createPost(postData);
       res.status(201).json(result);
     } catch (error: any) {
       console.error('Erro detalhado na criação de post:', error);
