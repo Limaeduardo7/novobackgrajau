@@ -46,13 +46,36 @@ export class BlogController {
 
   async createPost(req: Request, res: Response) {
     try {
+      console.log('Dados recebidos no POST:', JSON.stringify(req.body, null, 2));
+      console.log('Headers recebidos:', JSON.stringify(req.headers, null, 2));
+      
+      // Validar campos obrigatórios
+      if (!req.body.title) {
+        return res.status(400).json({ error: 'Título é obrigatório' });
+      }
+      
+      if (!req.body.content) {
+        return res.status(400).json({ error: 'Conteúdo é obrigatório' });
+      }
+      
+      if (!req.body.categoryId) {
+        return res.status(400).json({ error: 'ID da categoria é obrigatório' });
+      }
+      
       const result = await BlogService.createPost(req.body);
       res.status(201).json(result);
     } catch (error: any) {
+      console.error('Erro detalhado na criação de post:', error);
+      console.error('Stack trace:', error.stack);
+      
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });
       } else {
-        res.status(500).json({ error: 'Erro ao criar post' });
+        res.status(500).json({ 
+          error: 'Erro ao criar post', 
+          message: error.message,
+          stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined 
+        });
       }
     }
   }
