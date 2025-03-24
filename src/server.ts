@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { errorHandler } from './middlewares/errorHandler';
 import { blogRoutes } from './routes/blog.routes';
 import systemRoutes from './routes/system.routes';
+import uploadRoutes from './routes/upload.routes';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -90,6 +91,7 @@ app.use('/public/blog/*', (req, res) => {
 // Rotas
 app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api', uploadRoutes);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
