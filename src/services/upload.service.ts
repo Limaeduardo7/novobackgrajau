@@ -53,7 +53,7 @@ export class UploadService {
       
       if (error) {
         console.error('Erro no Supabase Storage:', error);
-        console.error('Código do erro:', error.code);
+        console.error('Detalhes do erro:', JSON.stringify(error));
         console.error('Mensagem do erro:', error.message);
         throw new AppError(500, `Erro ao fazer upload: ${error.message}`);
       }
