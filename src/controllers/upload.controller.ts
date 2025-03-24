@@ -1,19 +1,23 @@
 import { Request, Response } from 'express';
-import multer from 'multer';
+import * as multer from 'multer';
 import UploadService from '../services/upload.service';
 import { AppError } from '../utils/AppError';
 
-// Configuração do multer para armazenar em memória
+// Definição da interface para Request com file
+interface MulterRequest extends Request {
+  file?: any;
+}
+
+// Configuração do multer
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer.default({ 
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    // Verificar tipos de arquivos permitidos
+  fileFilter: (req: any, file: any, cb: any) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas imagens são permitidas') as any, false);
+      cb(new Error('Apenas imagens são permitidas'), false);
     }
   }
 });
@@ -22,7 +26,7 @@ export class UploadController {
   // Middleware do multer
   uploadMiddleware = upload.single('file');
   
-  async uploadFile(req: Request, res: Response) {
+  async uploadFile(req: MulterRequest, res: Response) {
     try {
       console.log('Requisição de upload recebida:', req.file ? 'Com arquivo' : 'Sem arquivo');
       

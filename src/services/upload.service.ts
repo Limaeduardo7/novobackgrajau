@@ -1,8 +1,18 @@
 import { supabase } from '../lib/supabase';
 import { AppError } from '../utils/AppError';
 
+// Definição da interface para o arquivo do Multer
+interface MulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+}
+
 export class UploadService {
-  async uploadFile(file: Express.Multer.File, folder: string = 'blog'): Promise<{ url: string }> {
+  async uploadFile(file: MulterFile, folder: string = 'blog'): Promise<{ url: string }> {
     try {
       if (!file) {
         throw new AppError(400, 'Nenhum arquivo enviado');
