@@ -99,7 +99,11 @@ export class BlogSupabaseService {
 
   async getPostById(id: string, options: { validCategoryOnly?: boolean } = {}): Promise<SingleResponse<Post>> {
     try {
+      console.log(`=== INÍCIO DA BUSCA DE POST POR ID ===`);
+      console.log(`ID recebido: "${id}"`);
+      
       const { validCategoryOnly = false } = options;
+      console.log(`validCategoryOnly: ${validCategoryOnly}`);
       
       let query = supabase
         .from('BlogPost')
@@ -110,21 +114,35 @@ export class BlogSupabaseService {
         query = query.not('categoryId', 'is', null);
       }
       
+      console.log(`Executando consulta no Supabase...`);
       const { data, error } = await query.single();
       
       if (error) {
+        console.error(`Erro na consulta do Supabase: ${error.message}`);
+        console.error(`Código do erro: ${error.code}`);
+        console.error(`Detalhes: ${JSON.stringify(error)}`);
+        
         if (error.code === 'PGRST116') {
+          console.error(`Post não encontrado (PGRST116)`);
           throw new AppError(404, 'Post não encontrado');
         }
         throw new AppError(500, error.message);
       }
       
       if (!data) {
+        console.error(`Nenhum dado retornado pelo Supabase`);
         throw new AppError(404, 'Post não encontrado');
       }
       
+      console.log(`Post encontrado, ID: ${data.id}, Título: ${data.title}`);
+      console.log(`=== FIM DA BUSCA DE POST POR ID ===`);
+      
       return { data: this.mapBlogPostToPost(data) };
     } catch (error: any) {
+      console.error(`=== ERRO NA BUSCA DE POST POR ID ===`);
+      console.error(`Mensagem: ${error.message}`);
+      console.error(`Stack: ${error.stack}`);
+      
       if (error instanceof AppError) throw error;
       throw new AppError(500, error.message);
     }

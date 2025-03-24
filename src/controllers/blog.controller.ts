@@ -32,10 +32,30 @@ export class BlogController {
 
   async getPostById(req: Request, res: Response) {
     try {
+      console.log(`=== CONTROLLER: INÍCIO DA BUSCA DE POST POR ID ===`);
+      console.log(`Parâmetros recebidos:`, req.params);
       const { id } = req.params;
+      console.log(`ID extraído: "${id}"`);
+      
+      // Validar se o ID é um UUID válido
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        console.error(`ID inválido: "${id}" não é um UUID válido`);
+        return res.status(400).json({ error: 'ID inválido. Formato UUID esperado.' });
+      }
+      
+      console.log(`Chamando serviço para buscar post com ID: ${id}`);
       const result = await BlogService.getPostById(id);
+      
+      console.log(`Post encontrado com sucesso:`, result);
+      console.log(`=== CONTROLLER: FIM DA BUSCA DE POST POR ID ===`);
+      
       res.json(result);
     } catch (error: any) {
+      console.error(`=== CONTROLLER: ERRO NA BUSCA DE POST POR ID ===`);
+      console.error(`Mensagem: ${error.message}`);
+      console.error(`Stack: ${error.stack}`);
+      
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });
       } else {
