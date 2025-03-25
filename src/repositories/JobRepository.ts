@@ -28,7 +28,7 @@ export class JobRepository {
       // Construir a consulta com base nos filtros
       let query = supabase
         .from('jobs')
-        .select('*, business:businessId(*)', { count: 'exact' });
+        .select('*', { count: 'exact' });
       
       if (status) {
         query = query.eq('status', status);
@@ -71,8 +71,11 @@ export class JobRepository {
         return handleSupabaseError(error);
       }
       
+      // Como não temos acesso ao business aqui, vamos buscar os IDs de empresas para buscar depois
+      const jobsWithoutBusiness = data.map(this.mapJobRowToJob) as Job[];
+      
       return {
-        data: data.map(this.mapJobRowToJob) as Job[],
+        data: jobsWithoutBusiness,
         pagination: {
           total: count || 0,
           page,
@@ -93,7 +96,7 @@ export class JobRepository {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select('*, business:businessId(*)')
+        .select('*')
         .eq('id', id)
         .single();
       
@@ -104,7 +107,39 @@ export class JobRepository {
         return handleSupabaseError(error);
       }
       
-      return this.mapJobRowToJob(data) as Job;
+      // Buscar a empresa separadamente
+      const job = this.mapJobRowToJob(data) as Job;
+      
+      if (job.businessId) {
+        try {
+          const { data: businessData, error: businessError } = await supabase
+            .from('empresas')
+            .select('*')
+            .eq('id', job.businessId)
+            .single();
+            
+          if (!businessError && businessData) {
+            job.business = {
+              id: String(businessData.id),
+              name: businessData.name,
+              logo: businessData.image || undefined,
+              description: businessData.description || undefined,
+              website: businessData.website || undefined,
+              email: businessData.email || undefined,
+              phone: businessData.phone || undefined,
+              city: businessData.city,
+              state: businessData.state,
+              status: businessData.status as any,
+              userId: ''
+            };
+          }
+        } catch (businessError) {
+          console.error(`Erro ao buscar empresa da vaga: ${job.businessId}`, businessError);
+          // Não falhar a requisição principal se não conseguir obter a empresa
+        }
+      }
+      
+      return job;
     } catch (error) {
       console.error(`Erro ao buscar vaga por ID: ${id}`, error);
       throw error;
@@ -138,14 +173,45 @@ export class JobRepository {
       const { data: newJob, error } = await supabase
         .from('jobs')
         .insert(jobData)
-        .select('*, business:businessId(*)')
+        .select('*')
         .single();
       
       if (error) {
         return handleSupabaseError(error);
       }
       
-      return this.mapJobRowToJob(newJob) as Job;
+      // Buscar a empresa separadamente
+      const job = this.mapJobRowToJob(newJob) as Job;
+      
+      if (job.businessId) {
+        try {
+          const { data: businessData, error: businessError } = await supabase
+            .from('empresas')
+            .select('*')
+            .eq('id', job.businessId)
+            .single();
+            
+          if (!businessError && businessData) {
+            job.business = {
+              id: String(businessData.id),
+              name: businessData.name,
+              logo: businessData.image || undefined,
+              description: businessData.description || undefined,
+              website: businessData.website || undefined,
+              email: businessData.email || undefined,
+              phone: businessData.phone || undefined,
+              city: businessData.city,
+              state: businessData.state,
+              status: businessData.status as any,
+              userId: ''
+            };
+          }
+        } catch (businessError) {
+          console.error(`Erro ao buscar empresa da vaga: ${job.businessId}`, businessError);
+        }
+      }
+      
+      return job;
     } catch (error) {
       console.error('Erro ao criar vaga:', error);
       throw error;
@@ -175,14 +241,45 @@ export class JobRepository {
         .from('jobs')
         .update(jobData)
         .eq('id', id)
-        .select('*, business:businessId(*)')
+        .select('*')
         .single();
       
       if (error) {
         return handleSupabaseError(error);
       }
       
-      return this.mapJobRowToJob(updatedJob) as Job;
+      // Buscar a empresa separadamente
+      const job = this.mapJobRowToJob(updatedJob) as Job;
+      
+      if (job.businessId) {
+        try {
+          const { data: businessData, error: businessError } = await supabase
+            .from('empresas')
+            .select('*')
+            .eq('id', job.businessId)
+            .single();
+            
+          if (!businessError && businessData) {
+            job.business = {
+              id: String(businessData.id),
+              name: businessData.name,
+              logo: businessData.image || undefined,
+              description: businessData.description || undefined,
+              website: businessData.website || undefined,
+              email: businessData.email || undefined,
+              phone: businessData.phone || undefined,
+              city: businessData.city,
+              state: businessData.state,
+              status: businessData.status as any,
+              userId: ''
+            };
+          }
+        } catch (businessError) {
+          console.error(`Erro ao buscar empresa da vaga: ${job.businessId}`, businessError);
+        }
+      }
+      
+      return job;
     } catch (error) {
       console.error(`Erro ao atualizar vaga: ${id}`, error);
       throw error;
@@ -220,14 +317,45 @@ export class JobRepository {
           updatedAt: new Date().toISOString()
         })
         .eq('id', id)
-        .select('*, business:businessId(*)')
+        .select('*')
         .single();
       
       if (error) {
         return handleSupabaseError(error);
       }
       
-      return this.mapJobRowToJob(data) as Job;
+      // Buscar a empresa separadamente
+      const job = this.mapJobRowToJob(data) as Job;
+      
+      if (job.businessId) {
+        try {
+          const { data: businessData, error: businessError } = await supabase
+            .from('empresas')
+            .select('*')
+            .eq('id', job.businessId)
+            .single();
+            
+          if (!businessError && businessData) {
+            job.business = {
+              id: String(businessData.id),
+              name: businessData.name,
+              logo: businessData.image || undefined,
+              description: businessData.description || undefined,
+              website: businessData.website || undefined,
+              email: businessData.email || undefined,
+              phone: businessData.phone || undefined,
+              city: businessData.city,
+              state: businessData.state,
+              status: businessData.status as any,
+              userId: ''
+            };
+          }
+        } catch (businessError) {
+          console.error(`Erro ao buscar empresa da vaga: ${job.businessId}`, businessError);
+        }
+      }
+      
+      return job;
     } catch (error) {
       console.error(`Erro ao atualizar status da vaga: ${id}`, error);
       throw error;
@@ -246,14 +374,45 @@ export class JobRepository {
           updatedAt: new Date().toISOString()
         })
         .eq('id', id)
-        .select('*, business:businessId(*)')
+        .select('*')
         .single();
       
       if (error) {
         return handleSupabaseError(error);
       }
       
-      return this.mapJobRowToJob(data) as Job;
+      // Buscar a empresa separadamente
+      const job = this.mapJobRowToJob(data) as Job;
+      
+      if (job.businessId) {
+        try {
+          const { data: businessData, error: businessError } = await supabase
+            .from('empresas')
+            .select('*')
+            .eq('id', job.businessId)
+            .single();
+            
+          if (!businessError && businessData) {
+            job.business = {
+              id: String(businessData.id),
+              name: businessData.name,
+              logo: businessData.image || undefined,
+              description: businessData.description || undefined,
+              website: businessData.website || undefined,
+              email: businessData.email || undefined,
+              phone: businessData.phone || undefined,
+              city: businessData.city,
+              state: businessData.state,
+              status: businessData.status as any,
+              userId: ''
+            };
+          }
+        } catch (businessError) {
+          console.error(`Erro ao buscar empresa da vaga: ${job.businessId}`, businessError);
+        }
+      }
+      
+      return job;
     } catch (error) {
       console.error(`Erro ao alterar destaque da vaga: ${id}`, error);
       throw error;
@@ -269,7 +428,7 @@ export class JobRepository {
       
       const { data, error } = await supabase
         .from('jobs')
-        .select('*, business:businessId(*)')
+        .select('*')
         .eq('status', JobStatus.APPROVED)
         .eq('featured', true)
         .or(`expiresAt.is.null,expiresAt.gt.${currentDate}`)
@@ -280,7 +439,13 @@ export class JobRepository {
         return handleSupabaseError(error);
       }
       
-      return data.map(this.mapJobRowToJob) as Job[];
+      // Mapear os registros e buscar empresas depois
+      const jobs = data.map(this.mapJobRowToJob) as Job[];
+      
+      // Não vamos buscar as empresas para cada vaga em destaque para evitar muitas requisições
+      // Isso pode ser implementado se necessário
+      
+      return jobs;
     } catch (error) {
       console.error('Erro ao buscar vagas em destaque:', error);
       throw error;
@@ -405,19 +570,7 @@ export class JobRepository {
       status: data.status as JobStatus,
       featured: data.featured,
       businessId: data.businessId,
-      business: data.business ? {
-        id: data.business.id,
-        name: data.business.name,
-        logo: data.business.image,
-        description: data.business.description,
-        website: data.business.website,
-        email: data.business.email,
-        phone: data.business.phone,
-        city: data.business.city,
-        state: data.business.state,
-        status: data.business.status,
-        userId: data.business.user_id || ''
-      } : undefined,
+      business: undefined, // Será preenchido separadamente, se necessário
       createdAt: new Date(data.createdAt),
       updatedAt: new Date(data.updatedAt),
       expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
