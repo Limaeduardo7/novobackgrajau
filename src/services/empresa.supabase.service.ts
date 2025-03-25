@@ -30,6 +30,8 @@ export class EmpresaSupabaseService {
         order = 'desc'
       } = params;
 
+      console.log('Buscando empresas com parâmetros:', JSON.stringify(params));
+
       // Calcular o offset para paginação
       const from = (page - 1) * limit;
       const to = from + limit - 1;
@@ -60,12 +62,36 @@ export class EmpresaSupabaseService {
         query = query.eq('is_featured', featured);
       }
       
+      console.log('SQL gerado (aproximado):', `SELECT * FROM empresas WHERE ... ORDER BY ${sortBy} ${order} LIMIT ${limit} OFFSET ${from}`);
+      
       // Aplicar ordenação e paginação
       const { data, count, error } = await query
         .order(sortBy, { ascending: order === 'asc' })
         .range(from, to);
       
-      if (error) throw new AppError(500, error.message);
+      // Log dos resultados
+      console.log(`Resultados encontrados: ${count || 0}, Página: ${page}, Limite: ${limit}`);
+      if (data && data.length > 0) {
+        console.log('Primeiro resultado:', JSON.stringify(data[0], null, 2));
+      } else {
+        console.log('Nenhum resultado encontrado. Verificando se a tabela tem dados...');
+        
+        // Verificar se a tabela tem dados
+        const { count: totalCount, error: countError } = await supabase
+          .from('empresas')
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+          console.error('Erro ao verificar total de registros:', countError);
+        } else {
+          console.log(`Total de registros na tabela: ${totalCount || 0}`);
+        }
+      }
+      
+      if (error) {
+        console.error('Erro ao buscar empresas:', error);
+        throw new AppError(500, error.message);
+      }
       
       // Mapear os resultados para o formato esperado
       const empresas = data.map(empresa => this.mapEmpresaRowToEmpresa(empresa));

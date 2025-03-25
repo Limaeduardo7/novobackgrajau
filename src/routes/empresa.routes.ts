@@ -18,4 +18,12 @@ router.post('/', requireAuth, checkPermission('create:empresas'), empresaControl
 router.put('/:id', requireAuth, checkPermission('update:empresas'), empresaController.updateEmpresa);
 router.delete('/:id', requireAuth, checkPermission('delete:empresas'), empresaController.deleteEmpresa);
 
+// Rota para criar dados de exemplo (apenas em desenvolvimento)
+if (process.env.NODE_ENV === 'development') {
+  router.post('/seed', empresaController.createEmpresasExemplo);
+} else {
+  // Em produção, proteger com autenticação
+  router.post('/seed', requireAuth, checkPermission('admin'), empresaController.createEmpresasExemplo);
+}
+
 export const empresaRoutes = router; 
