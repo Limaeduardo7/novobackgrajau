@@ -142,6 +142,72 @@ export interface Database {
         }
         Relationships: []
       }
+      empresas: {
+        Row: {
+          id: number
+          name: string
+          slug?: string | null
+          category: string
+          description: string | null
+          image: string | null
+          address: string | null
+          phone: string | null
+          state: string
+          city: string
+          email: string | null
+          website: string | null
+          social_media: Json | null
+          opening_hours: Json | null
+          is_featured: boolean
+          rating: number | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          slug?: string | null
+          category: string
+          description?: string | null
+          image?: string | null
+          address?: string | null
+          phone?: string | null
+          state: string
+          city: string
+          email?: string | null
+          website?: string | null
+          social_media?: Json | null
+          opening_hours?: Json | null
+          is_featured?: boolean
+          rating?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          slug?: string | null
+          category?: string
+          description?: string | null
+          image?: string | null
+          address?: string | null
+          phone?: string | null
+          state?: string
+          city?: string
+          email?: string | null
+          website?: string | null
+          social_media?: Json | null
+          opening_hours?: Json | null
+          is_featured?: boolean
+          rating?: number | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
