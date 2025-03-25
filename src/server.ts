@@ -7,7 +7,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import { blogRoutes } from './routes/blog.routes';
 import systemRoutes from './routes/system.routes';
 import uploadRoutes from './routes/upload.routes';
-import { empresaRoutes } from './routes/empresa.routes';
+import { empresaRoutes, empresaAdminRoutes } from './routes/empresa.routes';
 import { profissionalRoutes, profissionalAdminRoutes } from './routes/profissional.routes';
 
 // Carrega as variáveis de ambiente
@@ -159,6 +159,7 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api/empresas', empresaRoutes);
+app.use('/api/admin/empresas', empresaAdminRoutes);
 app.use('/api/profissionais', profissionalRoutes);
 app.use('/api/admin/profissionais', profissionalAdminRoutes);
 
