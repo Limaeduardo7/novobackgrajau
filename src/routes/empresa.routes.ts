@@ -3,6 +3,7 @@ import { EmpresaController } from '../controllers/empresa.controller';
 import { requireAuth, checkPermission } from '../middlewares/auth';
 
 const router = Router();
+const adminRouter = Router();
 const empresaController = new EmpresaController();
 
 // Rotas públicas
@@ -26,4 +27,12 @@ if (process.env.NODE_ENV === 'development') {
   router.post('/seed', requireAuth, checkPermission('admin'), empresaController.createEmpresasExemplo);
 }
 
-export const empresaRoutes = router; 
+// Rotas administrativas
+adminRouter.get('/', requireAuth, checkPermission('admin'), empresaController.getEmpresas);
+adminRouter.get('/:id', requireAuth, checkPermission('admin'), empresaController.getEmpresaById);
+adminRouter.post('/', requireAuth, checkPermission('admin'), empresaController.createEmpresa);
+adminRouter.put('/:id', requireAuth, checkPermission('admin'), empresaController.updateEmpresa);
+adminRouter.delete('/:id', requireAuth, checkPermission('admin'), empresaController.deleteEmpresa);
+
+export const empresaRoutes = router;
+export const empresaAdminRoutes = adminRouter; 
