@@ -56,15 +56,15 @@ export class JobRepository {
       
       // Adicionar verificação de expiração para vagas aprovadas
       if (status === JobStatus.APPROVED) {
-        // Em SQL seria: WHERE (expiresAt IS NULL OR expiresAt > CURRENT_TIMESTAMP)
+        // Em SQL seria: WHERE (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
         const currentDate = new Date().toISOString();
-        query = query.or(`expiresAt.is.null,expiresAt.gt.${currentDate}`);
+        query = query.or(`expires_at.is.null,expires_at.gt.${currentDate}`);
       }
       
       // Aplicar ordenação e paginação
       const { data, count, error } = await query
         .order('featured', { ascending: false })
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(from, to);
       
       if (error) {
@@ -151,7 +151,11 @@ export class JobRepository {
    */
   async create(data: JobCreateParams): Promise<Job> {
     try {
-      const jobData: JobInsert = {
+      const jobData: Omit<JobInsert, "createdAt" | "updatedAt" | "expiresAt"> & {
+        created_at?: string;
+        updated_at?: string;
+        expires_at?: string | null;
+      } = {
         title: data.title,
         description: data.description,
         requirements: data.requirements || [],
@@ -160,14 +164,14 @@ export class JobRepository {
         type: data.type,
         location: data.location,
         businessId: data.businessId,
-        expiresAt: data.expiresAt || null,
+        expires_at: data.expiresAt || null,
         tags: data.tags || [],
         status: JobStatus.PENDING, // Todas as vagas começam como pendentes
         featured: false,
         views: 0,
         applications: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       const { data: newJob, error } = await supabase
@@ -223,7 +227,10 @@ export class JobRepository {
    */
   async update(id: string, data: JobUpdateParams): Promise<Job> {
     try {
-      const jobData: JobUpdate = {
+      const jobData: Omit<JobUpdate, "updatedAt" | "expiresAt"> & {
+        updated_at: string;
+        expires_at?: string | null;
+      } = {
         ...(data.title && { title: data.title }),
         ...(data.description && { description: data.description }),
         ...(data.requirements && { requirements: data.requirements }),
@@ -231,10 +238,10 @@ export class JobRepository {
         ...(data.salary && { salary: data.salary }),
         ...(data.type && { type: data.type }),
         ...(data.location && { location: data.location }),
-        ...(data.expiresAt && { expiresAt: data.expiresAt }),
+        ...(data.expiresAt && { expires_at: data.expiresAt }),
         ...(data.tags && { tags: data.tags }),
         status: JobStatus.PENDING, // Retorna para pendente após edição
-        updatedAt: new Date().toISOString()
+        updated_at: new Date().toISOString()
       };
       
       const { data: updatedJob, error } = await supabase
@@ -314,7 +321,7 @@ export class JobRepository {
         .from('jobs')
         .update({ 
           status,
-          updatedAt: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select('*')
@@ -371,7 +378,7 @@ export class JobRepository {
         .from('jobs')
         .update({ 
           featured,
-          updatedAt: new Date().toISOString()
+          updated_at: new Date().toISOString()
         })
         .eq('id', id)
         .select('*')
@@ -431,8 +438,8 @@ export class JobRepository {
         .select('*')
         .eq('status', JobStatus.APPROVED)
         .eq('featured', true)
-        .or(`expiresAt.is.null,expiresAt.gt.${currentDate}`)
-        .order('createdAt', { ascending: false })
+        .or(`expires_at.is.null,expires_at.gt.${currentDate}`)
+        .order('created_at', { ascending: false })
         .limit(limit);
       
       if (error) {
@@ -532,7 +539,7 @@ export class JobRepository {
       }
       
       const { data, count, error } = await query
-        .order('createdAt', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(from, to);
       
       if (error) {
@@ -571,9 +578,9 @@ export class JobRepository {
       featured: data.featured,
       businessId: data.businessId,
       business: undefined, // Será preenchido separadamente, se necessário
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt),
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+      createdAt: new Date(data.created_at || data.createdAt),
+      updatedAt: new Date(data.updated_at || data.updatedAt),
+      expiresAt: data.expires_at || data.expiresAt ? new Date(data.expires_at || data.expiresAt) : undefined,
       views: data.views || 0,
       applications: data.applications || 0,
       tags: data.tags || []
