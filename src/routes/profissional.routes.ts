@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { ProfissionalController } from '../controllers/profissional.controller';
+import profissionalController from '../controllers/profissional.controller';
 import { requireAuth, checkPermission } from '../middlewares/auth';
 
 const router = Router();
-const profissionalController = new ProfissionalController();
 
 // Rotas públicas
 router.get('/', profissionalController.getProfissionais);

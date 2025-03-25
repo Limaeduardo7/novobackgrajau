@@ -1,14 +1,15 @@
 import { Request, Response } from 'express';
 import ProfissionalService from '../services/profissional.factory';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError } from '../utils/AppError';
+import { Profissional, ProfissionalParams } from '../types/profissional';
 
-export class ProfissionalController {
+class ProfissionalController {
   /**
    * Lista profissionais com paginação e filtros
    */
   async getProfissionais(req: Request, res: Response) {
     try {
-      const params = {
+      const params: ProfissionalParams = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
         ocupacao: req.query.ocupacao as string | undefined,
@@ -38,13 +39,12 @@ export class ProfissionalController {
     try {
       const { id } = req.params;
       
-      // Validar se o ID é um número
-      const profissionalId = parseInt(id);
-      if (isNaN(profissionalId)) {
-        return res.status(400).json({ error: 'ID inválido. Formato numérico esperado.' });
+      // Validar se o ID é um UUID válido
+      if (!id) {
+        return res.status(400).json({ error: 'ID inválido. UUID esperado.' });
       }
       
-      const result = await ProfissionalService.getProfissionalById(profissionalId);
+      const result = await ProfissionalService.getProfissionalById(id);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {
@@ -53,6 +53,7 @@ export class ProfissionalController {
         res.status(500).json({ error: 'Erro ao buscar profissional' });
       }
     }
+  }
 
   /**
    * Retorna detalhes do próprio perfil de profissional (para usuários autenticados)
@@ -75,6 +76,7 @@ export class ProfissionalController {
         res.status(500).json({ error: 'Erro ao buscar seu perfil de profissional' });
       }
     }
+  }
 
   /**
    * Cria um novo profissional
@@ -90,27 +92,31 @@ export class ProfissionalController {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
-      // Processamento e validação de tipos
+      // Garantir que todos os campos obrigatórios estejam presentes
       const profissionalData = {
-        name: req.body.name ? String(req.body.name).trim() : '',
+        nome: req.body.nome ? String(req.body.nome).trim() : '',
         ocupacao: req.body.ocupacao ? String(req.body.ocupacao).trim() : '',
-        descricao: req.body.descricao ? String(req.body.descricao).trim() : null,
+        especialidades: req.body.especialidades || [],
+        experiencia: req.body.experiencia || '',
+        educacao: req.body.educacao || [],
+        certificacoes: req.body.certificacoes || [],
+        portfolio: req.body.portfolio || [],
+        disponibilidade: req.body.disponibilidade || '',
+        valor_hora: req.body.valor_hora ? Number(req.body.valor_hora) : null,
+        sobre: req.body.sobre || '',
         foto: req.body.foto || null,
-        endereco: req.body.endereco ? String(req.body.endereco).trim() : null,
-        telefone: req.body.telefone ? String(req.body.telefone).trim() : null,
+        telefone: req.body.telefone ? String(req.body.telefone).trim() : '',
+        email: req.body.email ? String(req.body.email).trim() : '',
+        website: req.body.website || null,
+        endereco: req.body.endereco || null,
         estado: req.body.estado ? String(req.body.estado).trim() : '',
         cidade: req.body.cidade ? String(req.body.cidade).trim() : '',
-        email: req.body.email || null,
-        website: req.body.website || null,
-        redes_sociais: req.body.redes_sociais || null,
-        disponibilidade: req.body.disponibilidade || null,
-        is_featured: false, // Novos profissionais começam sem destaque
-        avaliacao: req.body.avaliacao ? Number(req.body.avaliacao) : null,
-        status: 'PENDING' as 'PENDING' // Novos profissionais começam como pendentes
+        social_media: req.body.social_media || null,
+        featured: false,
+        status: 'PENDING' as const
       };
       
-      // Validar campos obrigatórios
-      if (!profissionalData.name) {
+      if (!profissionalData.nome) {
         return res.status(400).json({ error: 'Nome é obrigatório' });
       }
       
@@ -293,7 +299,7 @@ export class ProfissionalController {
    */
   async getAllProfissionais(req: Request, res: Response) {
     try {
-      const params = {
+      const params: ProfissionalParams = {
         page: req.query.page ? parseInt(req.query.page as string) : 1,
         limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
         ocupacao: req.query.ocupacao as string | undefined,
@@ -326,10 +332,9 @@ export class ProfissionalController {
       const { id } = req.params;
       const { status } = req.body;
       
-      // Validar se o ID é um número
-      const profissionalId = parseInt(id);
-      if (isNaN(profissionalId)) {
-        return res.status(400).json({ error: 'ID inválido. Formato numérico esperado.' });
+      // Validar o ID
+      if (!id) {
+        return res.status(400).json({ error: 'ID inválido. UUID esperado.' });
       }
       
       // Validar o status
@@ -338,7 +343,7 @@ export class ProfissionalController {
       }
       
       const result = await ProfissionalService.updateProfissionalStatus(
-        profissionalId, 
+        id, 
         status as 'APPROVED' | 'REJECTED' | 'PENDING'
       );
       
@@ -360,10 +365,9 @@ export class ProfissionalController {
       const { id } = req.params;
       const { featured } = req.body;
       
-      // Validar se o ID é um número
-      const profissionalId = parseInt(id);
-      if (isNaN(profissionalId)) {
-        return res.status(400).json({ error: 'ID inválido. Formato numérico esperado.' });
+      // Validar o ID
+      if (!id) {
+        return res.status(400).json({ error: 'ID inválido. UUID esperado.' });
       }
       
       // Validar o featured
@@ -372,7 +376,7 @@ export class ProfissionalController {
       }
       
       const result = await ProfissionalService.updateProfissionalFeatured(
-        profissionalId, 
+        id, 
         featured
       );
       
@@ -393,14 +397,13 @@ export class ProfissionalController {
     try {
       const { id } = req.params;
       
-      // Validar se o ID é um número
-      const profissionalId = parseInt(id);
-      if (isNaN(profissionalId)) {
-        return res.status(400).json({ error: 'ID inválido. Formato numérico esperado.' });
+      // Validar o ID
+      if (!id) {
+        return res.status(400).json({ error: 'ID inválido. UUID esperado.' });
       }
       
       const result = await ProfissionalService.deleteProfissional(
-        profissionalId, 
+        id, 
         undefined, // userId não necessário para admin
         true // é admin
       );
@@ -445,7 +448,7 @@ export class ProfissionalController {
             linkedin: 'anasilvamedica',
             facebook: 'draanasilva'
           },
-          status: 'APPROVED',
+          status: 'APPROVED' as const,
           featured: true
         },
         {
@@ -471,7 +474,7 @@ export class ProfissionalController {
             linkedin: 'carlosoliveira_adv',
             facebook: 'advcarlosoliveira'
           },
-          status: 'APPROVED',
+          status: 'APPROVED' as const,
           featured: true
         },
         {
@@ -494,10 +497,9 @@ export class ProfissionalController {
           estado: 'SP',
           social_media: {
             instagram: '@mariana.arq',
-            pinterest: 'marianasouzaarq',
             facebook: 'marianasouzaarquitetura'
           },
-          status: 'APPROVED',
+          status: 'APPROVED' as const,
           featured: true
         },
         {
@@ -522,7 +524,7 @@ export class ProfissionalController {
             instagram: '@roberto.eletricista',
             facebook: 'robertoeletricista'
           },
-          status: 'APPROVED',
+          status: 'APPROVED' as const,
           featured: false
         },
         {
@@ -548,7 +550,7 @@ export class ProfissionalController {
             youtube: 'fernandalimanutricionista',
             facebook: 'nutrifernandalima'
           },
-          status: 'APPROVED',
+          status: 'APPROVED' as const,
           featured: false
         }
       ];
@@ -564,7 +566,7 @@ export class ProfissionalController {
         success: true,
         message: 'Profissionais de exemplo criados com sucesso'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar profissionais de exemplo:', error);
       if (error instanceof AppError) {
         return res.status(error.statusCode).json({
@@ -578,4 +580,6 @@ export class ProfissionalController {
       });
     }
   }
-} 
+}
+
+export default new ProfissionalController(); 
