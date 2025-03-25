@@ -89,6 +89,23 @@ app.use('/public/blog/*', (req, res) => {
   res.redirect(307, `/api/blog${path}`);
 });
 
+// Adicionar middleware para redirecionar /businesses para /api/empresas
+app.use('/businesses', (req, res, next) => {
+  console.log(`Redirecionando de /businesses para /api/empresas - URL original: ${req.originalUrl}`);
+  // Modificar o URL para apontar para a rota de API correta
+  req.url = '/api/empresas' + req.url;
+  next('route');
+});
+
+// Rota alternativa para capturar requisições redirecionadas de businesses
+app.use('/businesses/*', (req, res) => {
+  // Extrair o caminho após /businesses/
+  const path = req.originalUrl.replace('/businesses', '');
+  console.log(`Redirecionando para: /api/empresas${path}`);
+  // Redirecionar para o caminho equivalente em /api/empresas
+  res.redirect(307, `/api/empresas${path}`);
+});
+
 // Rotas
 app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);

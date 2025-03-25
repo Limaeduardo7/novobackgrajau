@@ -168,18 +168,24 @@ export class EmpresaController {
    */
   async searchEmpresas(req: Request, res: Response) {
     try {
-      const query = req.query.query as string;
+      // Aceitar tanto 'query' quanto 'term' para compatibilidade
+      const searchTerm = (req.query.query || req.query.term) as string;
       const category = req.query.category as string | undefined;
       const state = req.query.state as string | undefined;
       const city = req.query.city as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const page = req.query.page ? parseInt(req.query.page as string) : 1;
       
-      if (!query) {
-        return res.status(400).json({ error: 'Termo de busca obrigatório' });
-      }
+      // Permitir busca vazia para retornar todos os resultados
+      const result = await EmpresaService.searchEmpresas(
+        searchTerm || '', 
+        category, 
+        state, 
+        city, 
+        limit, 
+        page
+      );
       
-      const result = await EmpresaService.searchEmpresas(query, category, state, city, limit, page);
       res.json(result);
     } catch (error: any) {
       if (error instanceof AppError) {

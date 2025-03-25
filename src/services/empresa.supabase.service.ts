@@ -325,8 +325,12 @@ export class EmpresaSupabaseService {
       // Construir a query base
       let dbQuery = supabase
         .from('empresas')
-        .select('*', { count: 'exact' })
-        .or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+        .select('*', { count: 'exact' });
+      
+      // Aplicar filtro de busca apenas se houver um termo
+      if (query && query.trim() !== '') {
+        dbQuery = dbQuery.or(`name.ilike.%${query}%,description.ilike.%${query}%`);
+      }
       
       // Aplicar filtros adicionais
       if (category) {
