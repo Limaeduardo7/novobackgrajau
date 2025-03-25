@@ -53,7 +53,6 @@ export class ProfissionalController {
         res.status(500).json({ error: 'Erro ao buscar profissional' });
       }
     }
-  }
 
   /**
    * Retorna detalhes do próprio perfil de profissional (para usuários autenticados)
@@ -76,7 +75,6 @@ export class ProfissionalController {
         res.status(500).json({ error: 'Erro ao buscar seu perfil de profissional' });
       }
     }
-  }
 
   /**
    * Cria um novo profissional
@@ -422,169 +420,162 @@ export class ProfissionalController {
    */
   async createProfissionaisExemplo(req: Request, res: Response) {
     try {
-      // Array de profissionais de exemplo
+      // Criar exemplos de profissionais para testes
       const profissionaisExemplo = [
         {
-          name: 'Ana Silva', 
+          nome: 'Ana Silva',
           ocupacao: 'Médica',
-          descricao: 'Médica especialista em clínica geral com mais de 10 anos de experiência. Atendimento humanizado e focado no bem-estar do paciente.',
-          foto: 'https://example.com/fotos/ana-silva.jpg',
-          endereco: 'Rua da Saúde, 123, Centro',
-          telefone: '(11) 99999-1111',
-          estado: 'SP',
+          especialidades: ['Clínica Geral', 'Pediatria', 'Medicina Preventiva'],
+          experiencia: 'Mais de 10 anos atuando em hospitais públicos e privados com foco em medicina familiar.',
+          educacao: ['Graduação em Medicina - USP', 'Residência em Clínica Médica - Hospital das Clínicas', 'Especialização em Pediatria - Instituto da Criança'],
+          certificacoes: ['CRM/SP 12345', 'Certificação em Primeiros Socorros'],
+          portfolio: ['https://dranasilvaclinica.com.br/casos', 'https://dranasilvaclinica.com.br/publicacoes'],
+          disponibilidade: 'Segunda a Sexta, 8h às 18h',
+          valor_hora: 250.00,
+          sobre: 'Médica dedicada com abordagem humanizada, focada no bem-estar integral dos pacientes. Trabalho com prevenção e tratamento personalizado.',
+          foto: 'https://randomuser.me/api/portraits/women/1.jpg',
+          telefone: '(11) 98765-4321',
+          email: 'dra.anasilva@exemplo.com.br',
+          website: 'https://dranasilvaclinica.com.br',
+          endereco: 'Rua das Flores, 123, Conjunto 45',
           cidade: 'São Paulo',
-          email: 'contato@anasilva.med.br',
-          website: 'https://anasilva.med.br',
-          redes_sociais: {
-            facebook: 'https://facebook.com/draanasilva',
-            instagram: 'https://instagram.com/draanasilva',
-            linkedin: 'https://linkedin.com/in/draanasilva'
+          estado: 'SP',
+          social_media: {
+            instagram: '@dra.anasilva',
+            linkedin: 'anasilvamedica',
+            facebook: 'draanasilva'
           },
-          disponibilidade: {
-            segunda: '08:00 - 18:00',
-            terca: '08:00 - 18:00',
-            quarta: '08:00 - 18:00',
-            quinta: '08:00 - 18:00',
-            sexta: '08:00 - 16:00'
-          },
-          is_featured: true,
-          avaliacao: 4.8,
-          status: 'APPROVED' as 'APPROVED'
+          status: 'APPROVED',
+          featured: true
         },
         {
-          name: 'Carlos Oliveira', 
+          nome: 'Carlos Oliveira',
           ocupacao: 'Advogado',
-          descricao: 'Advogado especializado em direito civil e trabalhista. Atendimento personalizado para pessoas físicas e jurídicas.',
-          foto: 'https://example.com/fotos/carlos-oliveira.jpg',
-          endereco: 'Avenida Paulista, 1000, Sala 203',
-          telefone: '(11) 98888-2222',
-          estado: 'SP',
+          especialidades: ['Direito Civil', 'Direito do Trabalho', 'Direito do Consumidor'],
+          experiencia: 'Mais de 15 anos de experiência em escritórios de grande porte e como assessor jurídico empresarial.',
+          educacao: ['Graduação em Direito - PUC-SP', 'Especialização em Direito Civil - FGV', 'Mestrado em Direito do Trabalho - USP'],
+          certificacoes: ['OAB/SP 54321', 'Especialista em Mediação e Arbitragem'],
+          portfolio: ['https://oliveiralegal.com.br/casos/trabalhista', 'https://oliveiralegal.com.br/artigos'],
+          disponibilidade: 'Segunda a Sexta, 9h às 18h',
+          valor_hora: 300.00,
+          sobre: 'Advogado com vasta experiência em questões civis e trabalhistas. Atendimento personalizado e abordagem estratégica para soluções jurídicas eficazes.',
+          foto: 'https://randomuser.me/api/portraits/men/2.jpg',
+          telefone: '(11) 91234-5678',
+          email: 'carlos@oliveiralegal.com.br',
+          website: 'https://oliveiralegal.com.br',
+          endereco: 'Avenida Paulista, 1000, Sala 1520',
           cidade: 'São Paulo',
-          email: 'carlos@oliveira.adv.br',
-          website: 'https://oliveira.adv.br',
-          redes_sociais: {
-            facebook: 'https://facebook.com/carlosoliveira.adv',
-            instagram: 'https://instagram.com/carlosoliveira.adv'
+          estado: 'SP',
+          social_media: {
+            instagram: '@adv.carlos',
+            linkedin: 'carlosoliveira_adv',
+            facebook: 'advcarlosoliveira'
           },
-          disponibilidade: {
-            segunda: '09:00 - 17:00',
-            terca: '09:00 - 17:00',
-            quarta: '09:00 - 17:00',
-            quinta: '09:00 - 17:00',
-            sexta: '09:00 - 17:00'
-          },
-          is_featured: true,
-          avaliacao: 4.6,
-          status: 'APPROVED' as 'APPROVED'
+          status: 'APPROVED',
+          featured: true
         },
         {
-          name: 'Mariana Souza', 
+          nome: 'Mariana Souza',
           ocupacao: 'Arquiteta',
-          descricao: 'Arquiteta e urbanista com foco em projetos residenciais e comerciais sustentáveis. Transforma espaços em ambientes funcionais e aconchegantes.',
-          foto: 'https://example.com/fotos/mariana-souza.jpg',
-          endereco: 'Rua dos Arquitetos, 456, Jardins',
-          telefone: '(11) 97777-3333',
-          estado: 'SP',
-          cidade: 'São Paulo',
+          especialidades: ['Arquitetura Residencial', 'Arquitetura Sustentável', 'Interiores'],
+          experiencia: 'Mais de 8 anos desenvolvendo projetos residenciais e comerciais com foco em sustentabilidade.',
+          educacao: ['Graduação em Arquitetura - Mackenzie', 'Pós-graduação em Arquitetura Sustentável - IED São Paulo'],
+          certificacoes: ['CAU A12345-6', 'Certificação LEED Green Associate'],
+          portfolio: ['https://marianasouza.arq.br/portfolio/residencial', 'https://marianasouza.arq.br/portfolio/comercial'],
+          disponibilidade: 'Segunda a Sexta, 10h às 19h',
+          valor_hora: 180.00,
+          sobre: 'Arquiteta apaixonada por criar espaços harmoniosos e funcionais. Especialista em projetos sustentáveis que unem estética, conforto e responsabilidade ambiental.',
+          foto: 'https://randomuser.me/api/portraits/women/3.jpg',
+          telefone: '(11) 99876-5432',
           email: 'contato@marianasouza.arq.br',
           website: 'https://marianasouza.arq.br',
-          redes_sociais: {
-            facebook: 'https://facebook.com/marianasouza.arq',
-            instagram: 'https://instagram.com/marianasouza.arq',
-            pinterest: 'https://pinterest.com/marianasouza'
+          endereco: 'Rua Augusta, 789, Conjunto 32',
+          cidade: 'São Paulo',
+          estado: 'SP',
+          social_media: {
+            instagram: '@mariana.arq',
+            pinterest: 'marianasouzaarq',
+            facebook: 'marianasouzaarquitetura'
           },
-          disponibilidade: {
-            segunda: '10:00 - 18:00',
-            terca: '10:00 - 18:00',
-            quarta: '10:00 - 18:00',
-            quinta: '10:00 - 18:00',
-            sexta: '10:00 - 16:00',
-            sabado: '10:00 - 14:00'
-          },
-          is_featured: false,
-          avaliacao: 4.9,
-          status: 'APPROVED' as 'APPROVED'
+          status: 'APPROVED',
+          featured: true
         },
         {
-          name: 'Roberto Almeida', 
+          nome: 'Roberto Almeida',
           ocupacao: 'Eletricista',
-          descricao: 'Eletricista residencial e comercial com mais de 15 anos de experiência. Instalações, reparos e manutenção preventiva com segurança e qualidade.',
-          foto: 'https://example.com/fotos/roberto-almeida.jpg',
-          endereco: null,
-          telefone: '(11) 94444-6666',
-          estado: 'SP',
+          especialidades: ['Instalações Residenciais', 'Instalações Comerciais', 'Manutenção Preventiva'],
+          experiencia: 'Mais de 20 anos trabalhando com instalações elétricas de todos os portes.',
+          educacao: ['Técnico em Eletrotécnica - SENAI', 'Curso de NR-10 - Segurança em Instalações Elétricas'],
+          certificacoes: ['Certificação NR-10', 'Credenciado pela ENEL'],
+          portfolio: ['https://eletricistaroberto.com.br/projetos'],
+          disponibilidade: 'Todos os dias, 7h às 21h',
+          valor_hora: 80.00,
+          sobre: 'Eletricista com vasta experiência em instalações e manutenções. Trabalho com segurança e qualidade, priorizando a satisfação do cliente e soluções duradouras.',
+          foto: 'https://randomuser.me/api/portraits/men/4.jpg',
+          telefone: '(11) 97654-3210',
+          email: 'roberto@eletricistaroberto.com.br',
+          website: 'https://eletricistaroberto.com.br',
+          endereco: 'Rua dos Eletricistas, 456',
           cidade: 'São Paulo',
-          email: 'roberto.eletricista@email.com',
-          website: null,
-          redes_sociais: {
-            facebook: 'https://facebook.com/robertoeletricista',
-            whatsapp: '5511944446666'
+          estado: 'SP',
+          social_media: {
+            instagram: '@roberto.eletricista',
+            facebook: 'robertoeletricista'
           },
-          disponibilidade: {
-            segunda: '08:00 - 18:00',
-            terca: '08:00 - 18:00',
-            quarta: '08:00 - 18:00',
-            quinta: '08:00 - 18:00',
-            sexta: '08:00 - 18:00',
-            sabado: '08:00 - 12:00'
-          },
-          is_featured: false,
-          avaliacao: 4.2,
-          status: 'APPROVED' as 'APPROVED'
+          status: 'APPROVED',
+          featured: false
         },
         {
-          name: 'Fernanda Lima', 
+          nome: 'Fernanda Lima',
           ocupacao: 'Nutricionista',
-          descricao: 'Nutricionista especializada em reeducação alimentar e emagrecimento saudável. Atendimento humanizado com planos alimentares personalizados.',
-          foto: 'https://example.com/fotos/fernanda-lima.jpg',
-          endereco: 'Avenida da Saúde, 321, Pinheiros',
-          telefone: '(11) 93333-7777',
-          estado: 'SP',
+          especialidades: ['Nutrição Clínica', 'Nutrição Esportiva', 'Reeducação Alimentar'],
+          experiencia: 'Mais de 6 anos atendendo em consultório próprio e assessorando atletas amadores e profissionais.',
+          educacao: ['Graduação em Nutrição - UNIFESP', 'Especialização em Nutrição Esportiva - USP'],
+          certificacoes: ['CRN-3 12345', 'Especialista em Nutrição Funcional'],
+          portfolio: ['https://fernandalima.nutri.br/casos-de-sucesso', 'https://fernandalima.nutri.br/artigos'],
+          disponibilidade: 'Segunda a Sexta, 8h às 20h',
+          valor_hora: 150.00,
+          sobre: 'Nutricionista especializada em planos alimentares personalizados. Atendo com foco na saúde integral e bem-estar, respeitando a individualidade e os objetivos de cada pessoa.',
+          foto: 'https://randomuser.me/api/portraits/women/5.jpg',
+          telefone: '(11) 95432-1098',
+          email: 'fernanda@nutricionista.com.br',
+          website: 'https://fernandalima.nutri.br',
+          endereco: 'Avenida Brasil, 500, Sala 45',
           cidade: 'São Paulo',
-          email: 'fernanda@nutricao.com',
-          website: 'https://fernandanutri.com.br',
-          redes_sociais: {
-            instagram: 'https://instagram.com/fernandanutri',
-            facebook: 'https://facebook.com/fernandanutri'
+          estado: 'SP',
+          social_media: {
+            instagram: '@fernanda.nutri',
+            youtube: 'fernandalimanutricionista',
+            facebook: 'nutrifernandalima'
           },
-          disponibilidade: {
-            segunda: '08:00 - 17:00',
-            terca: '08:00 - 17:00',
-            quarta: '08:00 - 17:00',
-            quinta: '08:00 - 17:00',
-            sexta: '08:00 - 15:00'
-          },
-          is_featured: true,
-          avaliacao: 4.8,
-          status: 'APPROVED' as 'APPROVED'
+          status: 'APPROVED',
+          featured: false
         }
       ];
-      
-      // Criar os profissionais
-      const promises = profissionaisExemplo.map(profissional => {
-        // Para testes, usamos um ID de usuário fixo ou null já que não é autenticado
-        const userId = process.env.NODE_ENV === 'development' ? 'test-user-id' : null;
-        return ProfissionalService.createProfissional(profissional, userId as any);
+
+      // Criar profissionais no banco de dados
+      const promessasCriacao = profissionaisExemplo.map(profissional => {
+        return ProfissionalService.createProfissional(profissional);
       });
-      
-      await Promise.all(promises);
-      
-      res.status(201).json({
-        message: `${profissionaisExemplo.length} profissionais de exemplo criados com sucesso`,
-        count: profissionaisExemplo.length
+
+      await Promise.all(promessasCriacao);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Profissionais de exemplo criados com sucesso'
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao criar profissionais de exemplo:', error);
-      
       if (error instanceof AppError) {
-        res.status(error.statusCode).json({ error: error.message });
-      } else {
-        res.status(500).json({ 
-          error: 'Erro ao criar profissionais de exemplo', 
-          message: error.message,
-          stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined 
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message
         });
       }
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno ao criar profissionais de exemplo'
+      });
     }
   }
 } 

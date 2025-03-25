@@ -1,37 +1,34 @@
 export interface Profissional {
-  id: number;
-  name: string;
-  slug?: string;
+  id: string;
+  user_id?: string | null;
+  nome: string;
   ocupacao: string;
-  descricao?: string | null;
+  especialidades: string[];
+  experiencia: string;
+  educacao: string[];
+  certificacoes?: string[] | null;
+  portfolio?: string[] | null;
+  disponibilidade: string;
+  valor_hora?: number | null;
+  sobre: string;
   foto?: string | null;
-  endereco?: string | null;
-  telefone?: string | null;
-  estado: string;
-  cidade: string;
-  email?: string | null;
+  telefone: string;
+  email: string;
   website?: string | null;
-  redes_sociais?: {
+  endereco?: string | null;
+  cidade: string;
+  estado: string;
+  social_media?: {
     facebook?: string | null;
     instagram?: string | null;
     twitter?: string | null;
     linkedin?: string | null;
     youtube?: string | null;
     whatsapp?: string | null;
+    outro?: string | null;
   } | null;
-  disponibilidade?: {
-    segunda?: string | null;
-    terca?: string | null;
-    quarta?: string | null;
-    quinta?: string | null;
-    sexta?: string | null;
-    sabado?: string | null;
-    domingo?: string | null;
-  } | null;
-  is_featured: boolean;
-  avaliacao?: number | null;
   status: 'APPROVED' | 'REJECTED' | 'PENDING';
-  user_id?: string | null;
+  featured: boolean;
   created_at: Date;
   updated_at: Date;
 }

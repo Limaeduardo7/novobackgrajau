@@ -61,11 +61,11 @@ export class ProfissionalSupabaseService {
       }
       
       if (search) {
-        query = query.or(`name.ilike.%${search}%,descricao.ilike.%${search}%,ocupacao.ilike.%${search}%`);
+        query = query.or(`nome.ilike.%${search}%,sobre.ilike.%${search}%,ocupacao.ilike.%${search}%`);
       }
       
       if (featured !== undefined) {
-        query = query.eq('is_featured', featured);
+        query = query.eq('featured', featured);
       }
       
       console.log('SQL gerado (aproximado):', `SELECT * FROM profissionais WHERE ... ORDER BY ${sortBy} ${order} LIMIT ${limit} OFFSET ${from}`);
@@ -106,7 +106,7 @@ export class ProfissionalSupabaseService {
    * Retorna os detalhes de um profissional específico
    * @param id ID do profissional
    */
-  async getProfissionalById(id: number): Promise<SingleProfissionalResponse> {
+  async getProfissionalById(id: string): Promise<SingleProfissionalResponse> {
     try {
       console.log(`Buscando profissional com ID: ${id}`);
       
@@ -170,15 +170,15 @@ export class ProfissionalSupabaseService {
   /**
    * Cria um novo profissional
    * @param data Dados do profissional
-   * @param userId ID do usuário autenticado
+   * @param userId ID do usuário autenticado (opcional)
    */
   async createProfissional(
-    data: Omit<Profissional, 'id' | 'created_at' | 'updated_at' | 'slug'>, 
-    userId: string
+    data: Omit<Profissional, 'id' | 'created_at' | 'updated_at'>, 
+    userId?: string
   ): Promise<SingleProfissionalResponse> {
     try {
       // Validar dados obrigatórios
-      if (!data.name || typeof data.name !== 'string') {
+      if (!data.nome || typeof data.nome !== 'string') {
         throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
       }
       
@@ -194,43 +194,46 @@ export class ProfissionalSupabaseService {
         throw new AppError(400, 'Cidade é obrigatória e deve ser uma string');
       }
       
-      // Verificar se o usuário já tem um perfil de profissional
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('profissionais')
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      if (checkError) {
-        throw new AppError(500, `Erro ao verificar perfil existente: ${checkError.message}`);
+      // Se o userId foi fornecido, verificar se o usuário já tem um perfil
+      if (userId) {
+        const { data: existingProfile, error: checkError } = await supabase
+          .from('profissionais')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (checkError) {
+          throw new AppError(500, `Erro ao verificar perfil existente: ${checkError.message}`);
+        }
+        
+        if (existingProfile) {
+          throw new AppError(409, 'Usuário já possui um perfil de profissional');
+        }
       }
-      
-      if (existingProfile) {
-        throw new AppError(409, 'Usuário já possui um perfil de profissional');
-      }
-      
-      // Gerar slug
-      const slug = slugify(data.name, { lower: true, strict: true });
       
       // Preparar dados para inserção
       const profissionalData: ProfissionalInsert = {
-        name: data.name,
-        slug,
+        nome: data.nome,
         ocupacao: data.ocupacao,
-        descricao: data.descricao || null,
+        especialidades: data.especialidades || [],
+        experiencia: data.experiencia || '',
+        educacao: data.educacao || [],
+        certificacoes: data.certificacoes || [],
+        portfolio: data.portfolio || [],
+        disponibilidade: data.disponibilidade || '',
+        valor_hora: data.valor_hora || null,
+        sobre: data.sobre || '',
         foto: data.foto || null,
+        telefone: data.telefone || '',
+        email: data.email || '',
+        website: data.website || null,
         endereco: data.endereco || null,
-        telefone: data.telefone || null,
         estado: data.estado,
         cidade: data.cidade,
-        email: data.email || null,
-        website: data.website || null,
-        redes_sociais: data.redes_sociais || null,
-        disponibilidade: data.disponibilidade || null,
-        is_featured: data.is_featured || false,
-        avaliacao: data.avaliacao || null,
+        social_media: data.social_media || null,
         status: 'PENDING', // Novos profissionais começam com status pendente
-        user_id: userId,
+        featured: data.featured || false,
+        user_id: userId || null,
         // created_at e updated_at são definidos pelo banco de dados com valor padrão
       };
       
@@ -265,7 +268,7 @@ export class ProfissionalSupabaseService {
    * @param isAdmin Flag que indica se o usuário é administrador
    */
   async updateProfissional(
-    id: number, 
+    id: string, 
     data: Partial<Profissional>, 
     userId?: string,
     isAdmin = false
@@ -290,17 +293,11 @@ export class ProfissionalSupabaseService {
         throw new AppError(403, 'Você não tem permissão para atualizar este perfil');
       }
       
-      // Verificar se está tentando mudar o nome/slug
-      if (data.name && data.name !== existingProfissional.name) {
-        const slug = slugify(data.name, { lower: true, strict: true });
-        data.slug = slug;
-      }
-      
       // Se for atualização do usuário comum (não admin) e estiver tentando mudar status ou featured
       if (!isAdmin) {
         // Não permitir que usuários comuns alterem esses campos
         delete data.status;
-        delete data.is_featured;
+        delete data.featured;
         
         // Atualização pelo usuário redefine o status para pendente
         data.status = 'PENDING';
@@ -308,21 +305,25 @@ export class ProfissionalSupabaseService {
       
       // Preparar dados para atualização
       const updateData: ProfissionalUpdate = {
-        ...(data.name && { name: data.name }),
-        ...(data.slug && { slug: data.slug }),
+        ...(data.nome && { nome: data.nome }),
         ...(data.ocupacao && { ocupacao: data.ocupacao }),
-        ...(data.descricao !== undefined && { descricao: data.descricao }),
+        ...(data.especialidades && { especialidades: data.especialidades }),
+        ...(data.experiencia !== undefined && { experiencia: data.experiencia }),
+        ...(data.educacao !== undefined && { educacao: data.educacao }),
+        ...(data.certificacoes !== undefined && { certificacoes: data.certificacoes }),
+        ...(data.portfolio !== undefined && { portfolio: data.portfolio }),
+        ...(data.disponibilidade !== undefined && { disponibilidade: data.disponibilidade }),
+        ...(data.valor_hora !== undefined && { valor_hora: data.valor_hora }),
+        ...(data.sobre !== undefined && { sobre: data.sobre }),
         ...(data.foto !== undefined && { foto: data.foto }),
-        ...(data.endereco !== undefined && { endereco: data.endereco }),
         ...(data.telefone !== undefined && { telefone: data.telefone }),
-        ...(data.estado && { estado: data.estado }),
-        ...(data.cidade && { cidade: data.cidade }),
         ...(data.email !== undefined && { email: data.email }),
         ...(data.website !== undefined && { website: data.website }),
-        ...(data.redes_sociais !== undefined && { redes_sociais: data.redes_sociais }),
-        ...(data.disponibilidade !== undefined && { disponibilidade: data.disponibilidade }),
-        ...(isAdmin && data.is_featured !== undefined && { is_featured: data.is_featured }),
-        ...(data.avaliacao !== undefined && { avaliacao: data.avaliacao }),
+        ...(data.endereco !== undefined && { endereco: data.endereco }),
+        ...(data.estado && { estado: data.estado }),
+        ...(data.cidade && { cidade: data.cidade }),
+        ...(data.social_media !== undefined && { social_media: data.social_media }),
+        ...(isAdmin && data.featured !== undefined && { featured: data.featured }),
         ...(isAdmin && data.status && { status: data.status }),
         updated_at: new Date().toISOString()
       };
@@ -355,7 +356,7 @@ export class ProfissionalSupabaseService {
    * @param id ID do profissional
    * @param status Novo status
    */
-  async updateProfissionalStatus(id: number, status: 'APPROVED' | 'REJECTED' | 'PENDING'): Promise<SingleProfissionalResponse> {
+  async updateProfissionalStatus(id: string, status: 'APPROVED' | 'REJECTED' | 'PENDING'): Promise<SingleProfissionalResponse> {
     try {
       // Verificar se o profissional existe
       const { data: existingProfissional, error: findError } = await supabase
@@ -414,7 +415,7 @@ export class ProfissionalSupabaseService {
    * @param id ID do profissional
    * @param featured Status de destaque
    */
-  async updateProfissionalFeatured(id: number, featured: boolean): Promise<SingleProfissionalResponse> {
+  async updateProfissionalFeatured(id: string, featured: boolean): Promise<SingleProfissionalResponse> {
     try {
       // Verificar se o profissional existe
       const { data: existingProfissional, error: findError } = await supabase
@@ -439,7 +440,7 @@ export class ProfissionalSupabaseService {
       const { data: updatedProfissional, error } = await supabase
         .from('profissionais')
         .update({ 
-          is_featured: featured, 
+          featured: featured, 
           updated_at: new Date().toISOString() 
         })
         .eq('id', id)
@@ -467,7 +468,7 @@ export class ProfissionalSupabaseService {
    * @param userId ID do usuário (para verificação de propriedade)
    * @param isAdmin Flag que indica se o usuário é administrador
    */
-  async deleteProfissional(id: number, userId?: string, isAdmin = false): Promise<{ message: string }> {
+  async deleteProfissional(id: string, userId?: string, isAdmin = false): Promise<{ message: string }> {
     try {
       // Verificar se o profissional existe
       const { data: existingProfissional, error: findError } = await supabase
@@ -534,7 +535,7 @@ export class ProfissionalSupabaseService {
       
       // Aplicar filtro de busca apenas se houver um termo
       if (query && query.trim() !== '') {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,descricao.ilike.%${query}%,ocupacao.ilike.%${query}%`);
+        dbQuery = dbQuery.or(`nome.ilike.%${query}%,sobre.ilike.%${query}%,ocupacao.ilike.%${query}%`);
       }
       
       // Aplicar filtros adicionais
@@ -552,7 +553,7 @@ export class ProfissionalSupabaseService {
       
       // Aplicar paginação
       const { data, count, error } = await dbQuery
-        .order('name')
+        .order('nome')
         .range(from, to);
       
       if (error) throw new AppError(500, error.message);
@@ -585,7 +586,7 @@ export class ProfissionalSupabaseService {
       const { data, error } = await supabase
         .from('profissionais')
         .select('*')
-        .eq('is_featured', true)
+        .eq('featured', true)
         .eq('status', 'APPROVED')
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -632,21 +633,25 @@ export class ProfissionalSupabaseService {
   private mapProfissionalRowToProfissional(data: ProfissionalRow): Profissional {
     return {
       id: data.id,
-      name: data.name,
-      slug: data.slug || undefined,
+      nome: data.nome,
       ocupacao: data.ocupacao,
-      descricao: data.descricao,
+      especialidades: data.especialidades,
+      experiencia: data.experiencia,
+      educacao: data.educacao,
+      certificacoes: data.certificacoes,
+      portfolio: data.portfolio,
+      disponibilidade: data.disponibilidade,
+      valor_hora: data.valor_hora,
+      sobre: data.sobre,
       foto: data.foto,
-      endereco: data.endereco,
       telefone: data.telefone,
-      estado: data.estado,
-      cidade: data.cidade,
       email: data.email,
       website: data.website,
-      redes_sociais: data.redes_sociais as Profissional['redes_sociais'],
-      disponibilidade: data.disponibilidade as Profissional['disponibilidade'],
-      is_featured: data.is_featured,
-      avaliacao: data.avaliacao,
+      endereco: data.endereco,
+      estado: data.estado,
+      cidade: data.cidade,
+      social_media: data.social_media as Profissional['social_media'],
+      featured: data.featured,
       status: data.status as 'APPROVED' | 'REJECTED' | 'PENDING',
       user_id: data.user_id,
       created_at: new Date(data.created_at),

@@ -210,72 +210,91 @@ export interface Database {
       }
       profissionais: {
         Row: {
-          id: number
-          name: string
-          slug: string | null
-          ocupacao: string
-          descricao: string | null
-          foto: string | null
-          endereco: string | null
-          telefone: string | null
-          estado: string
-          cidade: string
-          email: string | null
-          website: string | null
-          redes_sociais: Json | null
-          disponibilidade: Json | null
-          is_featured: boolean
-          avaliacao: number | null
-          status: string
+          id: string
           user_id: string | null
+          nome: string
+          ocupacao: string
+          especialidades: string[]
+          experiencia: string
+          educacao: string[]
+          certificacoes: string[] | null
+          portfolio: string[] | null
+          disponibilidade: string
+          valor_hora: number | null
+          sobre: string
+          foto: string | null
+          telefone: string
+          email: string
+          website: string | null
+          endereco: string | null
+          cidade: string
+          estado: string
+          social_media: Json | null
+          status: string
+          featured: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
-          id?: number
-          name: string
-          slug?: string | null
-          ocupacao: string
-          descricao?: string | null
-          foto?: string | null
-          endereco?: string | null
-          telefone?: string | null
-          estado: string
-          cidade: string
-          email?: string | null
-          website?: string | null
-          redes_sociais?: Json | null
-          disponibilidade?: Json | null
-          is_featured?: boolean
-          avaliacao?: number | null
-          status?: string
+          id?: string
           user_id?: string | null
+          nome: string
+          ocupacao: string
+          especialidades: string[]
+          experiencia: string
+          educacao: string[]
+          certificacoes?: string[] | null
+          portfolio?: string[] | null
+          disponibilidade: string
+          valor_hora?: number | null
+          sobre: string
+          foto?: string | null
+          telefone: string
+          email: string
+          website?: string | null
+          endereco?: string | null
+          cidade: string
+          estado: string
+          social_media?: Json | null
+          status?: string
+          featured?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id?: number
-          name?: string
-          slug?: string | null
-          ocupacao?: string
-          descricao?: string | null
-          foto?: string | null
-          endereco?: string | null
-          telefone?: string | null
-          estado?: string
-          cidade?: string
-          email?: string | null
-          website?: string | null
-          redes_sociais?: Json | null
-          disponibilidade?: Json | null
-          is_featured?: boolean
-          avaliacao?: number | null
-          status?: string
+          id?: string
           user_id?: string | null
+          nome?: string
+          ocupacao?: string
+          especialidades?: string[]
+          experiencia?: string
+          educacao?: string[]
+          certificacoes?: string[] | null
+          portfolio?: string[] | null
+          disponibilidade?: string
+          valor_hora?: number | null
+          sobre?: string
+          foto?: string | null
+          telefone?: string
+          email?: string
+          website?: string | null
+          endereco?: string | null
+          cidade?: string
+          estado?: string
+          social_media?: Json | null
+          status?: string
+          featured?: boolean
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
