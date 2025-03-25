@@ -8,9 +8,10 @@ const jobController = new JobController();
 
 // Rotas públicas
 router.get('/', jobController.list.bind(jobController));
+router.get('/search', jobController.list.bind(jobController));
 router.get('/featured', jobController.getFeatured.bind(jobController));
-router.get('/:id', jobController.getById.bind(jobController));
 router.get('/empresa/:businessId', jobController.getByBusiness.bind(jobController));
+router.get('/:id', jobController.getById.bind(jobController));
 router.post('/:id/view', jobController.incrementViews.bind(jobController));
 router.post('/:id/apply', jobController.incrementApplications.bind(jobController));
 

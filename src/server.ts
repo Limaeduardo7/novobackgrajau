@@ -155,6 +155,38 @@ app.use('/admin/professionals/*', (req, res) => {
   res.redirect(307, `/api/admin/profissionais${path}`);
 });
 
+// Adicionar middleware para redirecionar /jobs para /api/vagas
+app.use('/jobs', (req, res, next) => {
+  console.log(`Redirecionando de /jobs para /api/vagas - URL original: ${req.originalUrl}`);
+  // Redirecionamento direto
+  res.redirect(307, `/api/vagas${req.url}`);
+});
+
+// Rota alternativa para capturar requisições redirecionadas de jobs
+app.use('/jobs/*', (req, res) => {
+  // Extrair o caminho após /jobs/
+  const path = req.originalUrl.replace('/jobs', '');
+  console.log(`Redirecionando para: /api/vagas${path}`);
+  // Redirecionar para o caminho equivalente em /api/vagas
+  res.redirect(307, `/api/vagas${path}`);
+});
+
+// Adicionar middleware para redirecionar /admin/jobs para /api/admin/vagas
+app.use('/admin/jobs', (req, res, next) => {
+  console.log(`Redirecionando de /admin/jobs para /api/admin/vagas - URL original: ${req.originalUrl}`);
+  // Redirecionamento direto
+  res.redirect(307, `/api/admin/vagas${req.url}`);
+});
+
+// Rota alternativa para capturar requisições redirecionadas de admin/jobs
+app.use('/admin/jobs/*', (req, res) => {
+  // Extrair o caminho após /admin/jobs/
+  const path = req.originalUrl.replace('/admin/jobs', '');
+  console.log(`Redirecionando para: /api/admin/vagas${path}`);
+  // Redirecionar para o caminho equivalente em /api/admin/vagas
+  res.redirect(307, `/api/admin/vagas${path}`);
+});
+
 // Rotas
 app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);
