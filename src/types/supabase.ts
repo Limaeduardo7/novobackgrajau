@@ -208,6 +208,75 @@ export interface Database {
         }
         Relationships: []
       }
+      profissionais: {
+        Row: {
+          id: number
+          name: string
+          slug: string | null
+          ocupacao: string
+          descricao: string | null
+          foto: string | null
+          endereco: string | null
+          telefone: string | null
+          estado: string
+          cidade: string
+          email: string | null
+          website: string | null
+          redes_sociais: Json | null
+          disponibilidade: Json | null
+          is_featured: boolean
+          avaliacao: number | null
+          status: string
+          user_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          slug?: string | null
+          ocupacao: string
+          descricao?: string | null
+          foto?: string | null
+          endereco?: string | null
+          telefone?: string | null
+          estado: string
+          cidade: string
+          email?: string | null
+          website?: string | null
+          redes_sociais?: Json | null
+          disponibilidade?: Json | null
+          is_featured?: boolean
+          avaliacao?: number | null
+          status?: string
+          user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          slug?: string | null
+          ocupacao?: string
+          descricao?: string | null
+          foto?: string | null
+          endereco?: string | null
+          telefone?: string | null
+          estado?: string
+          cidade?: string
+          email?: string | null
+          website?: string | null
+          redes_sociais?: Json | null
+          disponibilidade?: Json | null
+          is_featured?: boolean
+          avaliacao?: number | null
+          status?: string
+          user_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

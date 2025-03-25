@@ -8,6 +8,7 @@ import { blogRoutes } from './routes/blog.routes';
 import systemRoutes from './routes/system.routes';
 import uploadRoutes from './routes/upload.routes';
 import { empresaRoutes } from './routes/empresa.routes';
+import { profissionalRoutes, profissionalAdminRoutes } from './routes/profissional.routes';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -121,11 +122,45 @@ app.use('/admin/businesses/*', (req, res) => {
   res.redirect(307, `/api/empresas${path}`);
 });
 
+// Adicionar middleware para redirecionar /professionals para /api/profissionais
+app.use('/professionals', (req, res, next) => {
+  console.log(`Redirecionando de /professionals para /api/profissionais - URL original: ${req.originalUrl}`);
+  // Redirecionamento direto
+  res.redirect(307, `/api/profissionais${req.url}`);
+});
+
+// Rota alternativa para capturar requisições redirecionadas de professionals
+app.use('/professionals/*', (req, res) => {
+  // Extrair o caminho após /professionals/
+  const path = req.originalUrl.replace('/professionals', '');
+  console.log(`Redirecionando para: /api/profissionais${path}`);
+  // Redirecionar para o caminho equivalente em /api/profissionais
+  res.redirect(307, `/api/profissionais${path}`);
+});
+
+// Adicionar middleware para redirecionar /admin/professionals para /api/admin/profissionais
+app.use('/admin/professionals', (req, res, next) => {
+  console.log(`Redirecionando de /admin/professionals para /api/admin/profissionais - URL original: ${req.originalUrl}`);
+  // Redirecionamento direto
+  res.redirect(307, `/api/admin/profissionais${req.url}`);
+});
+
+// Rota alternativa para capturar requisições redirecionadas de admin/professionals
+app.use('/admin/professionals/*', (req, res) => {
+  // Extrair o caminho após /admin/professionals/
+  const path = req.originalUrl.replace('/admin/professionals', '');
+  console.log(`Redirecionando para: /api/admin/profissionais${path}`);
+  // Redirecionar para o caminho equivalente em /api/admin/profissionais
+  res.redirect(307, `/api/admin/profissionais${path}`);
+});
+
 // Rotas
 app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api/empresas', empresaRoutes);
+app.use('/api/profissionais', profissionalRoutes);
+app.use('/api/admin/profissionais', profissionalAdminRoutes);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
