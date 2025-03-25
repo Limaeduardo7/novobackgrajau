@@ -61,13 +61,58 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       return next();
     }
     
-    // Se não for o token admin, usa o Clerk
-    console.log('Utilizando Clerk para autenticação');
-    return ClerkExpressRequireAuth({
-      // Opções para o Clerk, se necessário
-      // Não altera comportamento se for HTTPS ou HTTP
-      authorizedParties: [process.env.FRONTEND_URL, process.env.API_URL].filter((url): url is string => !!url)
-    })(req, res, next);
+    try {
+      // Se não for o token admin, usa o Clerk
+      console.log('Utilizando Clerk para autenticação');
+      
+      // Configura o clerk
+      const clerkMiddleware = ClerkExpressRequireAuth({
+        authorizedParties: [process.env.FRONTEND_URL, process.env.API_URL].filter((url): url is string => !!url)
+      });
+      
+      // Tentativa de autenticação com Clerk
+      return clerkMiddleware(req, res, (err) => {
+        if (err) {
+          console.error('Erro na autenticação do Clerk:', err);
+          
+          // Se estiver em desenvolvimento, permita passar mesmo com erro no Clerk
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ Permitindo acesso em desenvolvimento apesar de erro no Clerk');
+            
+            // Adicionar um usuário fictício para desenvolvimento
+            (req as any).auth = {
+              userId: 'dev-user-id',
+              sessionId: 'dev-session-id',
+              session: { 
+                user: { 
+                  id: 'dev-user-id',
+                  email: 'dev@example.com',
+                  firstName: 'Dev',
+                  lastName: 'User' 
+                } 
+              }
+            };
+            
+            return next();
+          }
+          
+          // Em produção, retorne erro normalmente
+          return next(new AppError(401, 'Autenticação inválida'));
+        }
+        
+        return next();
+      });
+    } catch (clerkError) {
+      console.error('Exceção no middleware do Clerk:', clerkError);
+      
+      // Se estiver em desenvolvimento, permita passar mesmo com erro no Clerk
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('⚠️ Permitindo acesso em desenvolvimento apesar de exceção no Clerk');
+        return next();
+      }
+      
+      throw new AppError(401, 'Erro de autenticação');
+    }
   } catch (error) {
     console.error('Erro na autenticação:', error);
     next(new AppError(401, 'Não autorizado'));
@@ -78,8 +123,31 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 export const checkPermission = (permission: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Aqui você pode implementar sua lógica de verificação de permissões
-      // Por enquanto, vamos apenas passar
+      // Se estamos em ambiente de desenvolvimento, permitir sem verificar
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Permissão ${permission} concedida em ambiente de desenvolvimento`);
+        return next();
+      }
+      
+      // Aqui você deve adicionar sua lógica real de verificação de permissões
+      // Por exemplo, verificar se o usuário tem a permissão específica no seu sistema
+      
+      // Para admin, você pode adicionar uma verificação específica:
+      if (permission === 'admin') {
+        // Verificar se o token é um token de admin
+        // Ou se o usuário tem role de admin
+        const user = (req as any).auth?.user;
+        if (user?.role === 'admin') {
+          return next();
+        }
+        
+        console.log('Usuário não tem permissão de admin');
+        throw new AppError(403, 'Acesso não autorizado. Permissão de administrador necessária.');
+      }
+      
+      // Para outras permissões, implemente a verificação adequada
+      
+      // Por enquanto, vamos apenas passar em desenvolvimento
       next();
     } catch (error) {
       next(new AppError(403, 'Acesso não autorizado'));

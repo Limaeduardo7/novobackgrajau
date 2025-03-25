@@ -25,13 +25,30 @@ router.get('/me', requireAuth, profissionalController.getMyProfile);
 router.put('/me', requireAuth, profissionalController.updateMyProfile);
 router.delete('/me', requireAuth, profissionalController.deleteMyProfile);
 
-// Rotas de administração
+// Rotas de administração - Separar em um router próprio
 const adminRouter = Router();
 
-adminRouter.get('/', requireAuth, checkPermission('admin'), profissionalController.getAllProfissionais);
-adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalStatus);
-adminRouter.put('/:id/feature', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalFeatured);
-adminRouter.delete('/:id', requireAuth, checkPermission('admin'), profissionalController.deleteProfissional);
+// Log de depuração para rotas administrativas
+adminRouter.use((req, res, next) => {
+  console.log(`[DEBUG] Rota administrativa acessada: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Aplicar middleware de autenticação e verificação de permissão em todas as rotas de admin
+if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
+  console.log('⚠️ Bypass de autenticação ativo para rotas administrativas em desenvolvimento');
+  // Em desenvolvimento, podemos optar por não usar autenticação para facilitar testes
+  adminRouter.get('/', profissionalController.getAllProfissionais);
+  adminRouter.put('/:id/status', profissionalController.updateProfissionalStatus);
+  adminRouter.put('/:id/feature', profissionalController.updateProfissionalFeatured);
+  adminRouter.delete('/:id', profissionalController.deleteProfissional);
+} else {
+  // Em produção, usamos autenticação e verificação de permissões
+  adminRouter.get('/', requireAuth, checkPermission('admin'), profissionalController.getAllProfissionais);
+  adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalStatus);
+  adminRouter.put('/:id/feature', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalFeatured);
+  adminRouter.delete('/:id', requireAuth, checkPermission('admin'), profissionalController.deleteProfissional);
+}
 
 export const profissionalRoutes = router;
 export const profissionalAdminRoutes = adminRouter; 
