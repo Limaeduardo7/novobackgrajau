@@ -105,6 +105,22 @@ app.use('/businesses/*', (req, res) => {
   res.redirect(307, `/api/empresas${path}`);
 });
 
+// Adicionar middleware para redirecionar /admin/businesses para /api/empresas
+app.use('/admin/businesses', (req, res, next) => {
+  console.log(`Redirecionando de /admin/businesses para /api/empresas - URL original: ${req.originalUrl}`);
+  // Redirecionamento direto
+  res.redirect(307, `/api/empresas${req.url}`);
+});
+
+// Rota alternativa para capturar requisições redirecionadas de admin/businesses
+app.use('/admin/businesses/*', (req, res) => {
+  // Extrair o caminho após /admin/businesses/
+  const path = req.originalUrl.replace('/admin/businesses', '');
+  console.log(`Redirecionando para: /api/empresas${path}`);
+  // Redirecionar para o caminho equivalente em /api/empresas
+  res.redirect(307, `/api/empresas${path}`);
+});
+
 // Rotas
 app.use('/api/blog', blogRoutes);
 app.use('/api/system', systemRoutes);
