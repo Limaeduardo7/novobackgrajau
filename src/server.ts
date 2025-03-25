@@ -17,29 +17,21 @@ dotenv.config();
 
 const app = express();
 
-// Configuração de CORS melhorada
-const corsOptions = {
-  origin: [
-    process.env.FRONTEND_URL || 'https://anunciargrajaueregiao.com',
-    // Adicione outros domínios permitidos
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'X-Authorization',
-    'Accept',
-    'Origin'
-  ],
-  credentials: true
-};
+// SOLUÇÃO SIMPLES PARA CORS - Permitir tudo
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Middlewares
-app.use(cors(corsOptions));
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -51,21 +43,6 @@ app.use(helmet({
     preload: true
   }
 }));
-
-// Tratamento especial para requisições OPTIONS (preflight)
-app.options('*', (req, res) => {
-  console.log('Requisição OPTIONS recebida:', req.originalUrl);
-  
-  // Configurar cabeçalhos CORS manualmente para ter certeza
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Authorization, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Access-Control-Allow-Headers');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24 horas
-  
-  // Responder com 200 OK sem conteúdo
-  res.status(200).end();
-});
 
 app.use(morgan('dev'));
 app.use(express.json());
