@@ -27,7 +27,14 @@ const corsOptions = {
     'http://localhost:5174'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'X-Authorization',
+    'Accept',
+    'Origin'
+  ],
   credentials: true
 };
 
@@ -52,7 +59,7 @@ app.options('*', (req, res) => {
   // Configurar cabeçalhos CORS manualmente para ter certeza
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Authorization, Access-Control-Allow-Methods, Access-Control-Allow-Origin, Access-Control-Allow-Headers');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400'); // 24 horas
   
