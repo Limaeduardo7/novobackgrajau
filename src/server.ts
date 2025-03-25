@@ -9,6 +9,7 @@ import systemRoutes from './routes/system.routes';
 import uploadRoutes from './routes/upload.routes';
 import { empresaRoutes, empresaAdminRoutes } from './routes/empresa.routes';
 import { profissionalRoutes, profissionalAdminRoutes } from './routes/profissional.routes';
+import { jobRoutes, jobAdminRoutes } from './routes/job.routes';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -162,6 +163,8 @@ app.use('/api/empresas', empresaRoutes);
 app.use('/api/admin/empresas', empresaAdminRoutes);
 app.use('/api/profissionais', profissionalRoutes);
 app.use('/api/admin/profissionais', profissionalAdminRoutes);
+app.use('/api/vagas', jobRoutes);
+app.use('/api/admin/vagas', jobAdminRoutes);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
