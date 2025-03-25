@@ -296,6 +296,73 @@ export interface Database {
           }
         ]
       }
+      jobs: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          requirements: string[]
+          benefits: string[]
+          salary: string
+          type: string
+          location: string
+          status: string
+          featured: boolean
+          businessId: string
+          createdAt: string
+          updatedAt: string
+          expiresAt: string | null
+          views: number
+          applications: number
+          tags: string[]
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          requirements?: string[]
+          benefits?: string[]
+          salary: string
+          type: string
+          location: string
+          status?: string
+          featured?: boolean
+          businessId: string
+          createdAt?: string
+          updatedAt?: string
+          expiresAt?: string | null
+          views?: number
+          applications?: number
+          tags?: string[]
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          requirements?: string[]
+          benefits?: string[]
+          salary?: string
+          type?: string
+          location?: string
+          status?: string
+          featured?: boolean
+          businessId?: string
+          createdAt?: string
+          updatedAt?: string
+          expiresAt?: string | null
+          views?: number
+          applications?: number
+          tags?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_businessId_fkey"
+            columns: ["businessId"]
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

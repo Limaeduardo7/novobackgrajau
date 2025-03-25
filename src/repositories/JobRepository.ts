@@ -1,5 +1,10 @@
-import { prisma } from '../database/prisma';
+import { supabase, handleSupabaseError } from '../lib/supabase';
 import { Job, JobCreateParams, JobListParams, JobStatus, JobUpdateParams, PaginatedResponse } from '../types/job.types';
+import { Database } from '../types/supabase';
+
+type JobRow = Database['public']['Tables']['jobs']['Row'];
+type JobInsert = Database['public']['Tables']['jobs']['Insert'];
+type JobUpdate = Database['public']['Tables']['jobs']['Update'];
 
 export class JobRepository {
   /**
@@ -15,134 +20,103 @@ export class JobRepository {
     location,
     type
   }: JobListParams): Promise<PaginatedResponse<Job>> {
-    // Construir a consulta com base nos filtros
-    const where: any = {};
-    
-    if (status) {
-      where.status = status;
-    }
-    
-    if (featured !== undefined) {
-      where.featured = featured;
-    }
-    
-    if (businessId) {
-      where.businessId = businessId;
-    }
-    
-    if (location) {
-      where.location = {
-        contains: location,
-        mode: 'insensitive'
-      };
-    }
-    
-    if (type) {
-      where.type = {
-        contains: type,
-        mode: 'insensitive'
-      };
-    }
-    
-    if (search) {
-      where.OR = [
-        {
-          title: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        },
-        {
-          description: {
-            contains: search,
-            mode: 'insensitive'
-          }
-        },
-        {
-          tags: {
-            has: search
-          }
-        }
-      ];
-    }
-    
-    // Adicionar verificação de expiração para vagas aprovadas
-    if (status === JobStatus.APPROVED) {
-      where.OR = where.OR || [];
-      where.OR.push(
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } }
-      );
-    }
-    
-    const [jobs, total] = await Promise.all([
-      prisma.job.findMany({
-        where,
-        include: {
-          business: {
-            select: {
-              id: true,
-              name: true,
-              logo: true,
-              city: true,
-              state: true
-            }
-          }
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: [
-          { featured: 'desc' },
-          { createdAt: 'desc' }
-        ]
-      }),
-      prisma.job.count({ where })
-    ]);
-    
-    return {
-      data: jobs as unknown as Job[],
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+    try {
+      // Calcular o offset para paginação
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      
+      // Construir a consulta com base nos filtros
+      let query = supabase
+        .from('jobs')
+        .select('*, business:businessId(*)', { count: 'exact' });
+      
+      if (status) {
+        query = query.eq('status', status);
       }
-    };
+      
+      if (featured !== undefined) {
+        query = query.eq('featured', featured);
+      }
+      
+      if (businessId) {
+        query = query.eq('businessId', businessId);
+      }
+      
+      if (location) {
+        query = query.ilike('location', `%${location}%`);
+      }
+      
+      if (type) {
+        query = query.ilike('type', `%${type}%`);
+      }
+      
+      if (search) {
+        query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+      }
+      
+      // Adicionar verificação de expiração para vagas aprovadas
+      if (status === JobStatus.APPROVED) {
+        // Em SQL seria: WHERE (expiresAt IS NULL OR expiresAt > CURRENT_TIMESTAMP)
+        const currentDate = new Date().toISOString();
+        query = query.or(`expiresAt.is.null,expiresAt.gt.${currentDate}`);
+      }
+      
+      // Aplicar ordenação e paginação
+      const { data, count, error } = await query
+        .order('featured', { ascending: false })
+        .order('createdAt', { ascending: false })
+        .range(from, to);
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+      
+      return {
+        data: data.map(this.mapJobRowToJob) as Job[],
+        pagination: {
+          total: count || 0,
+          page,
+          limit,
+          totalPages: Math.ceil((count || 0) / limit)
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao listar vagas:', error);
+      throw error;
+    }
   }
 
   /**
    * Obtém uma vaga pelo ID
    */
   async getById(id: string): Promise<Job | null> {
-    const job = await prisma.job.findUnique({
-      where: { id },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-            description: true,
-            website: true,
-            email: true,
-            phone: true,
-            city: true,
-            state: true,
-            userId: true
-          }
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*, business:businessId(*)')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Não encontrado
         }
+        return handleSupabaseError(error);
       }
-    });
-    
-    return job as unknown as Job | null;
+      
+      return this.mapJobRowToJob(data) as Job;
+    } catch (error) {
+      console.error(`Erro ao buscar vaga por ID: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Cria uma nova vaga
    */
   async create(data: JobCreateParams): Promise<Job> {
-    const job = await prisma.job.create({
-      data: {
+    try {
+      const jobData: JobInsert = {
         title: data.title,
         description: data.description,
         requirements: data.requirements || [],
@@ -151,31 +125,39 @@ export class JobRepository {
         type: data.type,
         location: data.location,
         businessId: data.businessId,
-        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        expiresAt: data.expiresAt || null,
         tags: data.tags || [],
         status: JobStatus.PENDING, // Todas as vagas começam como pendentes
-      },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            logo: true
-          }
-        }
+        featured: false,
+        views: 0,
+        applications: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const { data: newJob, error } = await supabase
+        .from('jobs')
+        .insert(jobData)
+        .select('*, business:businessId(*)')
+        .single();
+      
+      if (error) {
+        return handleSupabaseError(error);
       }
-    });
-    
-    return job as unknown as Job;
+      
+      return this.mapJobRowToJob(newJob) as Job;
+    } catch (error) {
+      console.error('Erro ao criar vaga:', error);
+      throw error;
+    }
   }
 
   /**
    * Atualiza uma vaga existente
    */
   async update(id: string, data: JobUpdateParams): Promise<Job> {
-    const job = await prisma.job.update({
-      where: { id },
-      data: {
+    try {
+      const jobData: JobUpdate = {
         ...(data.title && { title: data.title }),
         ...(data.description && { description: data.description }),
         ...(data.requirements && { requirements: data.requirements }),
@@ -183,146 +165,267 @@ export class JobRepository {
         ...(data.salary && { salary: data.salary }),
         ...(data.type && { type: data.type }),
         ...(data.location && { location: data.location }),
-        ...(data.expiresAt && { expiresAt: new Date(data.expiresAt) }),
+        ...(data.expiresAt && { expiresAt: data.expiresAt }),
         ...(data.tags && { tags: data.tags }),
         status: JobStatus.PENDING, // Retorna para pendente após edição
-      },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            logo: true
-          }
-        }
+        updatedAt: new Date().toISOString()
+      };
+      
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .update(jobData)
+        .eq('id', id)
+        .select('*, business:businessId(*)')
+        .single();
+      
+      if (error) {
+        return handleSupabaseError(error);
       }
-    });
-    
-    return job as unknown as Job;
+      
+      return this.mapJobRowToJob(updatedJob) as Job;
+    } catch (error) {
+      console.error(`Erro ao atualizar vaga: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Exclui uma vaga
    */
   async delete(id: string): Promise<void> {
-    await prisma.job.delete({
-      where: { id }
-    });
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+    } catch (error) {
+      console.error(`Erro ao excluir vaga: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Atualiza o status de uma vaga
    */
   async updateStatus(id: string, status: JobStatus): Promise<Job> {
-    const job = await prisma.job.update({
-      where: { id },
-      data: { status }
-    });
-    
-    return job as unknown as Job;
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .update({ 
+          status,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select('*, business:businessId(*)')
+        .single();
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+      
+      return this.mapJobRowToJob(data) as Job;
+    } catch (error) {
+      console.error(`Erro ao atualizar status da vaga: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Marca ou desmarca uma vaga como destaque
    */
   async toggleFeatured(id: string, featured: boolean): Promise<Job> {
-    const job = await prisma.job.update({
-      where: { id },
-      data: { featured }
-    });
-    
-    return job as unknown as Job;
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .update({ 
+          featured,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select('*, business:businessId(*)')
+        .single();
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+      
+      return this.mapJobRowToJob(data) as Job;
+    } catch (error) {
+      console.error(`Erro ao alterar destaque da vaga: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Obtém vagas em destaque
    */
   async getFeatured(limit: number): Promise<Job[]> {
-    const jobs = await prisma.job.findMany({
-      where: {
-        status: JobStatus.APPROVED,
-        featured: true,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } }
-        ]
-      },
-      include: {
-        business: {
-          select: {
-            id: true,
-            name: true,
-            logo: true,
-            city: true,
-            state: true
-          }
-        }
-      },
-      take: limit,
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    return jobs as unknown as Job[];
+    try {
+      const currentDate = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*, business:businessId(*)')
+        .eq('status', JobStatus.APPROVED)
+        .eq('featured', true)
+        .or(`expiresAt.is.null,expiresAt.gt.${currentDate}`)
+        .order('createdAt', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+      
+      return data.map(this.mapJobRowToJob) as Job[];
+    } catch (error) {
+      console.error('Erro ao buscar vagas em destaque:', error);
+      throw error;
+    }
   }
 
   /**
    * Incrementa o contador de visualizações
    */
   async incrementViews(id: string): Promise<void> {
-    await prisma.job.update({
-      where: { id },
-      data: {
-        views: {
-          increment: 1
-        }
+    try {
+      const { data: job, error: fetchError } = await supabase
+        .from('jobs')
+        .select('views')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) {
+        return handleSupabaseError(fetchError);
       }
-    });
+      
+      const newViews = (job.views || 0) + 1;
+      
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update({ views: newViews })
+        .eq('id', id);
+      
+      if (updateError) {
+        return handleSupabaseError(updateError);
+      }
+    } catch (error) {
+      console.error(`Erro ao incrementar visualizações: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Incrementa o contador de aplicações
    */
   async incrementApplications(id: string): Promise<void> {
-    await prisma.job.update({
-      where: { id },
-      data: {
-        applications: {
-          increment: 1
-        }
+    try {
+      const { data: job, error: fetchError } = await supabase
+        .from('jobs')
+        .select('applications')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) {
+        return handleSupabaseError(fetchError);
       }
-    });
+      
+      const newApplications = (job.applications || 0) + 1;
+      
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update({ applications: newApplications })
+        .eq('id', id);
+      
+      if (updateError) {
+        return handleSupabaseError(updateError);
+      }
+    } catch (error) {
+      console.error(`Erro ao incrementar aplicações: ${id}`, error);
+      throw error;
+    }
   }
 
   /**
    * Obtém vagas de uma empresa específica
    */
   async getByBusiness(businessId: string, { page, limit, status }: { page: number; limit: number; status?: string }): Promise<PaginatedResponse<Job>> {
-    const where: any = {
-      businessId
-    };
-    
-    if (status) {
-      where.status = status;
-    }
-    
-    const [jobs, total] = await Promise.all([
-      prisma.job.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' }
-      }),
-      prisma.job.count({ where })
-    ]);
-    
-    return {
-      data: jobs as unknown as Job[],
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+    try {
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+      
+      let query = supabase
+        .from('jobs')
+        .select('*', { count: 'exact' })
+        .eq('businessId', businessId);
+      
+      if (status) {
+        query = query.eq('status', status);
       }
+      
+      const { data, count, error } = await query
+        .order('createdAt', { ascending: false })
+        .range(from, to);
+      
+      if (error) {
+        return handleSupabaseError(error);
+      }
+      
+      return {
+        data: data.map(this.mapJobRowToJob) as Job[],
+        pagination: {
+          total: count || 0,
+          page,
+          limit,
+          totalPages: Math.ceil((count || 0) / limit)
+        }
+      };
+    } catch (error) {
+      console.error(`Erro ao buscar vagas da empresa: ${businessId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mapeia registro do banco para o modelo de negócio
+   */
+  private mapJobRowToJob(data: any): Job {
+    const job: Job = {
+      id: data.id,
+      title: data.title,
+      description: data.description,
+      requirements: data.requirements || [],
+      benefits: data.benefits || [],
+      salary: data.salary,
+      type: data.type,
+      location: data.location,
+      status: data.status as JobStatus,
+      featured: data.featured,
+      businessId: data.businessId,
+      business: data.business ? {
+        id: data.business.id,
+        name: data.business.name,
+        logo: data.business.image,
+        description: data.business.description,
+        website: data.business.website,
+        email: data.business.email,
+        phone: data.business.phone,
+        city: data.business.city,
+        state: data.business.state,
+        status: data.business.status,
+        userId: data.business.user_id || ''
+      } : undefined,
+      createdAt: new Date(data.createdAt),
+      updatedAt: new Date(data.updatedAt),
+      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+      views: data.views || 0,
+      applications: data.applications || 0,
+      tags: data.tags || []
     };
+    
+    return job;
   }
 } 
