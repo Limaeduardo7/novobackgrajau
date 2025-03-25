@@ -17,18 +17,19 @@ dotenv.config();
 
 const app = express();
 
-// Configuração CORS com cabeçalhos específicos listados
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Origin');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
+// Configuração CORS usando o pacote cors
+app.use(cors({
+  origin: '*', // Permite qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Métodos permitidos
+  allowedHeaders: '*', // Permite todos os cabeçalhos
+  credentials: true, // Habilita credenciais
+  preflightContinue: false, // Não continua para outras rotas em OPTIONS
+  optionsSuccessStatus: 204 // Status de sucesso para OPTIONS
+}));
+
+// Middleware adicional para garantir que as requisições OPTIONS sejam tratadas corretamente
+app.options('*', (req, res) => {
+  res.status(200).end();
 });
 
 // Middlewares
