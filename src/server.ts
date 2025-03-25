@@ -92,9 +92,8 @@ app.use('/public/blog/*', (req, res) => {
 // Adicionar middleware para redirecionar /businesses para /api/empresas
 app.use('/businesses', (req, res, next) => {
   console.log(`Redirecionando de /businesses para /api/empresas - URL original: ${req.originalUrl}`);
-  // Modificar o URL para apontar para a rota de API correta
-  req.url = '/api/empresas' + req.url;
-  next('route');
+  // Redirecionamento direto é mais seguro
+  res.redirect(307, `/api/empresas${req.url}`);
 });
 
 // Rota alternativa para capturar requisições redirecionadas de businesses
