@@ -17,21 +17,13 @@ dotenv.config();
 
 const app = express();
 
-// Configuração CORS emergencial - corrigida para permitir o cabeçalho access-control-allow-methods
+// Configuração CORS com cabeçalhos específicos listados
 app.use((req, res, next) => {
-  // Permitir todas as origens
-  res.header('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Allow-Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
-  // Métodos permitidos
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  
-  // Permitir todos os cabeçalhos - incluindo especificamente access-control-allow-methods
-  res.header('Access-Control-Allow-Headers', '*');
-  
-  // Garantir que credentials sejam permitidas se necessário
-  res.header('Access-Control-Allow-Credentials', 'true');
-  
-  // Responder imediatamente às requisições preflight OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
