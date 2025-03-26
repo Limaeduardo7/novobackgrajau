@@ -122,16 +122,29 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           return next(new AppError(401, 'Autenticação inválida'));
         }
         
-        // Extrair e logar informações do usuário autenticado
-        const userId = (req as any).auth?.userId;
-        
         try {
+          // Extrair e logar informações do usuário autenticado
+          const userId = (req as any).auth?.userId;
+          
+          if (!userId) {
+            throw new AppError(401, 'ID do usuário não encontrado');
+          }
+          
+          // Inicializar a estrutura auth se não existir
+          if (!(req as any).auth) {
+            (req as any).auth = {};
+          }
+          
+          if (!(req as any).auth.session) {
+            (req as any).auth.session = {};
+          }
+          
           // Buscar dados completos do usuário
           const user = await clerkClient.users.getUser(userId);
           
           // Atualizar os dados da sessão com as informações completas
           (req as any).auth.session.user = {
-            ...user,
+            id: userId,
             email: user.emailAddresses[0]?.emailAddress,
             firstName: user.firstName,
             lastName: user.lastName
