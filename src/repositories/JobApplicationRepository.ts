@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import supabase from '../config/supabase';
 import { handleSupabaseError } from '../utils/error-handler';
 import { PaginatedResponse } from '../types/common';
 import { 

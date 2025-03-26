@@ -1,7 +1,7 @@
 import { AppError } from '../errors/AppError';
 import { JobApplicationRepository } from '../repositories/JobApplicationRepository';
 import { JobRepository } from '../repositories/JobRepository';
-import { ProfissionalService } from './profissional.service';
+import profissionalService from '../services/profissional.factory';
 import { PaginatedResponse } from '../types/common';
 import { 
   JobApplication, 
@@ -50,7 +50,7 @@ export class JobApplicationService {
     }
 
     // Buscar o ID do profissional pelo userId
-    const professional = await ProfissionalService.getProfissionalByUserId(userId);
+    const professional = await profissionalService.getProfissionalByUserId(userId);
     if (!professional) {
       throw new AppError(404, 'Perfil profissional não encontrado');
     }
@@ -58,7 +58,7 @@ export class JobApplicationService {
     // Verificar se já existe uma candidatura ativa para esta vaga
     const existingApplications = await this.jobApplicationRepository.list({
       jobId: data.jobId,
-      professionalId: professional.id,
+      professionalId: professional.data.id,
       status: 'PENDING'
     });
 
@@ -69,7 +69,7 @@ export class JobApplicationService {
     // Criar a candidatura
     const application = await this.jobApplicationRepository.create({
       job_id: data.jobId,
-      professional_id: professional.id,
+      professional_id: professional.data.id,
       cover_letter: data.coverLetter,
       resume_url: data.resumeUrl,
       portfolio_url: data.portfolioUrl,
@@ -78,8 +78,7 @@ export class JobApplicationService {
       experience_years: data.experienceYears,
       skills: data.skills,
       additional_info: data.additionalInfo,
-      created_by: userId,
-      updated_by: userId
+      created_by: userId
     });
 
     return application;
@@ -92,15 +91,12 @@ export class JobApplicationService {
     const application = await this.getById(id);
 
     // Verificar se o usuário é o dono da candidatura ou é admin
-    const professional = await ProfissionalService.getProfissionalByUserId(userId);
-    if (!professional || (professional.id !== application.professional_id && !this.isAdmin(userId))) {
+    const professional = await profissionalService.getProfissionalByUserId(userId);
+    if (!professional || (professional.data.id !== application.professional_id && !this.isAdmin(userId))) {
       throw new AppError(403, 'Você não tem permissão para atualizar esta candidatura');
     }
 
-    return this.jobApplicationRepository.update(id, {
-      ...data,
-      updated_by: userId
-    });
+    return this.jobApplicationRepository.update(id, data);
   }
 
   /**
@@ -110,8 +106,8 @@ export class JobApplicationService {
     const application = await this.getById(id);
 
     // Verificar se o usuário é o dono da candidatura ou é admin
-    const professional = await ProfissionalService.getProfissionalByUserId(userId);
-    if (!professional || (professional.id !== application.professional_id && !this.isAdmin(userId))) {
+    const professional = await profissionalService.getProfissionalByUserId(userId);
+    if (!professional || (professional.data.id !== application.professional_id && !this.isAdmin(userId))) {
       throw new AppError(403, 'Você não tem permissão para excluir esta candidatura');
     }
 
