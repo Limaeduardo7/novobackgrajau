@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
+import { ClerkExpressRequireAuth, clerkClient } from '@clerk/clerk-sdk-node';
 import { AppError } from './errorHandler';
 
 // Middleware de autenticação usando Clerk
@@ -93,7 +93,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       });
       
       // Tentativa de autenticação com Clerk
-      return clerkMiddleware(req, res, (err) => {
+      return clerkMiddleware(req, res, async (err) => {
         if (err) {
           console.error('[AUTH] Erro na autenticação do Clerk:', err);
           
@@ -103,7 +103,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
             
             // Adicionar um usuário fictício para desenvolvimento com UUID válido
             (req as any).auth = {
-              userId: '00000000-0000-0000-0000-000000000000', // UUID válido para desenvolvimento
+              userId: '00000000-0000-0000-0000-000000000000',
               sessionId: 'dev-session-id',
               session: { 
                 user: { 
@@ -124,15 +124,30 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         
         // Extrair e logar informações do usuário autenticado
         const userId = (req as any).auth?.userId;
-        const user = (req as any).auth?.session?.user;
         
-        console.log('[AUTH] Usuário autenticado:', {
-          userId,
-          email: user?.email,
-          name: `${user?.firstName} ${user?.lastName}`
-        });
-        
-        return next();
+        try {
+          // Buscar dados completos do usuário
+          const user = await clerkClient.users.getUser(userId);
+          
+          // Atualizar os dados da sessão com as informações completas
+          (req as any).auth.session.user = {
+            ...user,
+            email: user.emailAddresses[0]?.emailAddress,
+            firstName: user.firstName,
+            lastName: user.lastName
+          };
+          
+          console.log('[AUTH] Usuário autenticado:', {
+            userId,
+            email: user.emailAddresses[0]?.emailAddress,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim()
+          });
+          
+          return next();
+        } catch (error) {
+          console.error('[AUTH] Erro ao buscar dados do usuário:', error);
+          return next(new AppError(401, 'Erro ao obter dados do usuário'));
+        }
       });
     } catch (clerkError) {
       console.error('[AUTH] Exceção no middleware do Clerk:', clerkError);
