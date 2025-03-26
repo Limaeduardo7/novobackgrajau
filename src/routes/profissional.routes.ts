@@ -9,6 +9,14 @@ router.get('/', profissionalController.getProfissionais);
 router.get('/search', profissionalController.searchProfissionais);
 router.get('/featured', profissionalController.getProfissionaisEmDestaque);
 router.get('/ocupacoes', profissionalController.getOcupacoes);
+
+// Rotas de usuário (autenticadas)
+router.post('/', requireAuth, profissionalController.createProfissional);
+router.get('/me', requireAuth, profissionalController.getMyProfile);
+router.put('/me', requireAuth, profissionalController.updateMyProfile);
+router.delete('/me', requireAuth, profissionalController.deleteMyProfile);
+
+// Rota pública por ID (deve vir depois de /me)
 router.get('/:id', profissionalController.getProfissionalById);
 
 // Rota para criar dados de exemplo (apenas em desenvolvimento)
@@ -18,12 +26,6 @@ if (process.env.NODE_ENV === 'development') {
   // Em produção, proteger com autenticação
   router.post('/seed', requireAuth, checkPermission('admin'), profissionalController.createProfissionaisExemplo);
 }
-
-// Rotas de usuário (autenticadas)
-router.post('/', requireAuth, profissionalController.createProfissional);
-router.get('/me', requireAuth, profissionalController.getMyProfile);
-router.put('/me', requireAuth, profissionalController.updateMyProfile);
-router.delete('/me', requireAuth, profissionalController.deleteMyProfile);
 
 // Rotas de administração - Separar em um router próprio
 const adminRouter = Router();
