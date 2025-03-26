@@ -60,16 +60,21 @@ class ProfissionalController {
    */
   async getMyProfile(req: Request, res: Response) {
     try {
-      // @ts-ignore - userId é adicionado pelo middleware de autenticação
-      const userId = req.user?.id;
+      // Extrair userId do objeto auth adicionado pelo middleware
+      const userId = (req as any).auth?.userId;
+      console.log('[PROFILE] Buscando perfil para userId:', userId);
       
       if (!userId) {
+        console.log('[PROFILE] Tentativa de acesso sem userId');
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
       const result = await ProfissionalService.getProfissionalByUserId(userId);
+      console.log('[PROFILE] Perfil encontrado:', result.data ? 'Sim' : 'Não');
+      
       res.json(result);
     } catch (error: any) {
+      console.error('[PROFILE] Erro ao buscar perfil:', error);
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });
       } else {
@@ -83,12 +88,16 @@ class ProfissionalController {
    */
   async createProfissional(req: Request, res: Response) {
     try {
-      console.log('Dados recebidos no POST:', JSON.stringify(req.body, null, 2));
+      console.log('[CREATE] Dados recebidos:', JSON.stringify(req.body, null, 2));
       
-      // @ts-ignore - userId é adicionado pelo middleware de autenticação
-      const userId = req.user?.id;
+      // Extrair userId do objeto auth adicionado pelo middleware
+      const userId = (req as any).auth?.userId;
+      const user = (req as any).auth?.session?.user;
+      
+      console.log('[CREATE] Dados do usuário:', { userId, user });
       
       if (!userId) {
+        console.log('[CREATE] Tentativa de criação sem userId');
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
@@ -96,17 +105,17 @@ class ProfissionalController {
       const profissionalData = {
         nome: req.body.nome ? String(req.body.nome).trim() : '',
         ocupacao: req.body.ocupacao ? String(req.body.ocupacao).trim() : '',
-        especialidades: req.body.especialidades || [],
+        especialidades: Array.isArray(req.body.especialidades) ? req.body.especialidades : [],
         experiencia: req.body.experiencia || '',
-        educacao: req.body.educacao || [],
-        certificacoes: req.body.certificacoes || [],
-        portfolio: req.body.portfolio || [],
+        educacao: Array.isArray(req.body.educacao) ? req.body.educacao : [],
+        certificacoes: Array.isArray(req.body.certificacoes) ? req.body.certificacoes : [],
+        portfolio: Array.isArray(req.body.portfolio) ? req.body.portfolio : [],
         disponibilidade: req.body.disponibilidade || '',
         valor_hora: req.body.valor_hora ? Number(req.body.valor_hora) : null,
         sobre: req.body.sobre || '',
         foto: req.body.foto || null,
         telefone: req.body.telefone ? String(req.body.telefone).trim() : '',
-        email: req.body.email ? String(req.body.email).trim() : '',
+        email: req.body.email || user?.email || '',
         website: req.body.website || null,
         endereco: req.body.endereco || null,
         estado: req.body.estado ? String(req.body.estado).trim() : '',
@@ -116,26 +125,29 @@ class ProfissionalController {
         status: 'PENDING' as const
       };
       
-      if (!profissionalData.nome) {
-        return res.status(400).json({ error: 'Nome é obrigatório' });
+      // Validar campos obrigatórios
+      const camposObrigatorios = {
+        nome: 'Nome',
+        ocupacao: 'Ocupação',
+        estado: 'Estado',
+        cidade: 'Cidade',
+        email: 'Email'
+      };
+      
+      for (const [campo, label] of Object.entries(camposObrigatorios)) {
+        if (!profissionalData[campo as keyof typeof profissionalData]) {
+          console.log(`[CREATE] Campo obrigatório ausente: ${campo}`);
+          return res.status(400).json({ error: `${label} é obrigatório` });
+        }
       }
       
-      if (!profissionalData.ocupacao) {
-        return res.status(400).json({ error: 'Ocupação é obrigatória' });
-      }
-      
-      if (!profissionalData.estado) {
-        return res.status(400).json({ error: 'Estado é obrigatório' });
-      }
-      
-      if (!profissionalData.cidade) {
-        return res.status(400).json({ error: 'Cidade é obrigatória' });
-      }
-      
+      console.log('[CREATE] Dados validados, criando perfil...');
       const result = await ProfissionalService.createProfissional(profissionalData, userId);
+      console.log('[CREATE] Perfil criado com sucesso');
+      
       res.status(201).json(result);
     } catch (error: any) {
-      console.error('Erro detalhado na criação de profissional:', error);
+      console.error('[CREATE] Erro detalhado:', error);
       
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });
@@ -154,16 +166,21 @@ class ProfissionalController {
    */
   async updateMyProfile(req: Request, res: Response) {
     try {
-      // @ts-ignore - userId é adicionado pelo middleware de autenticação
-      const userId = req.user?.id;
+      // Extrair userId do objeto auth adicionado pelo middleware
+      const userId = (req as any).auth?.userId;
+      console.log('[UPDATE] Atualizando perfil para userId:', userId);
       
       if (!userId) {
+        console.log('[UPDATE] Tentativa de atualização sem userId');
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
       // Buscar o profissional do usuário
       try {
+        console.log('[UPDATE] Buscando perfil existente...');
         const { data: profissional } = await ProfissionalService.getProfissionalByUserId(userId);
+        
+        console.log('[UPDATE] Dados recebidos para atualização:', JSON.stringify(req.body, null, 2));
         
         // Atualizar o perfil
         const result = await ProfissionalService.updateProfissional(
@@ -173,14 +190,17 @@ class ProfissionalController {
           false // não é admin
         );
         
+        console.log('[UPDATE] Perfil atualizado com sucesso');
         res.json(result);
       } catch (error: any) {
         if (error instanceof AppError && error.statusCode === 404) {
+          console.log('[UPDATE] Perfil não encontrado para atualização');
           return res.status(404).json({ error: 'Você não possui um perfil de profissional' });
         }
         throw error;
       }
     } catch (error: any) {
+      console.error('[UPDATE] Erro ao atualizar perfil:', error);
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ error: error.message });
       } else {

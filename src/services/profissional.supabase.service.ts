@@ -144,7 +144,12 @@ export class ProfissionalSupabaseService {
    */
   async getProfissionalByUserId(userId: string): Promise<SingleProfissionalResponse> {
     try {
-      console.log(`Buscando profissional do usuário: ${userId}`);
+      console.log('[SERVICE] Buscando profissional do usuário:', userId);
+      
+      if (!userId) {
+        console.log('[SERVICE] Tentativa de busca sem userId');
+        throw new AppError(400, 'ID do usuário é obrigatório');
+      }
       
       const { data, error } = await supabase
         .from('profissionais')
@@ -153,15 +158,17 @@ export class ProfissionalSupabaseService {
         .single();
       
       if (error) {
+        console.error('[SERVICE] Erro ao buscar profissional:', error);
         if (error.code === 'PGRST116') {
           throw new AppError(404, 'Perfil de profissional não encontrado');
         }
         throw new AppError(500, error.message);
       }
       
+      console.log('[SERVICE] Profissional encontrado:', data?.id);
       return { data: this.mapProfissionalRowToProfissional(data) };
     } catch (error: any) {
-      console.error(`Erro ao buscar profissional por user_id: ${error.message}`);
+      console.error('[SERVICE] Erro ao buscar profissional por user_id:', error);
       if (error instanceof AppError) throw error;
       throw new AppError(500, error.message);
     }
@@ -177,25 +184,33 @@ export class ProfissionalSupabaseService {
     userId?: string
   ): Promise<SingleProfissionalResponse> {
     try {
+      console.log('[SERVICE] Iniciando criação de profissional para userId:', userId);
+      console.log('[SERVICE] Dados recebidos:', JSON.stringify(data, null, 2));
+      
       // Validar dados obrigatórios
-      if (!data.nome || typeof data.nome !== 'string') {
-        throw new AppError(400, 'Nome é obrigatório e deve ser uma string');
-      }
+      const camposObrigatorios = {
+        nome: 'Nome',
+        ocupacao: 'Ocupação',
+        estado: 'Estado',
+        cidade: 'Cidade',
+        email: 'Email'
+      };
       
-      if (!data.ocupacao || typeof data.ocupacao !== 'string') {
-        throw new AppError(400, 'Ocupação é obrigatória e deve ser uma string');
-      }
-      
-      if (!data.estado || typeof data.estado !== 'string') {
-        throw new AppError(400, 'Estado é obrigatório e deve ser uma string');
-      }
-      
-      if (!data.cidade || typeof data.cidade !== 'string') {
-        throw new AppError(400, 'Cidade é obrigatória e deve ser uma string');
+      for (const [campo, label] of Object.entries(camposObrigatorios)) {
+        if (!data[campo as keyof typeof data]) {
+          console.log(`[SERVICE] Campo obrigatório ausente: ${campo}`);
+          throw new AppError(400, `${label} é obrigatório`);
+        }
+        
+        if (typeof data[campo as keyof typeof data] !== 'string') {
+          console.log(`[SERVICE] Campo com tipo inválido: ${campo}`);
+          throw new AppError(400, `${label} deve ser uma string`);
+        }
       }
       
       // Se o userId foi fornecido, verificar se o usuário já tem um perfil
       if (userId) {
+        console.log('[SERVICE] Verificando perfil existente para userId:', userId);
         const { data: existingProfile, error: checkError } = await supabase
           .from('profissionais')
           .select('id')
@@ -203,39 +218,42 @@ export class ProfissionalSupabaseService {
           .maybeSingle();
         
         if (checkError) {
+          console.error('[SERVICE] Erro ao verificar perfil existente:', checkError);
           throw new AppError(500, `Erro ao verificar perfil existente: ${checkError.message}`);
         }
         
         if (existingProfile) {
+          console.log('[SERVICE] Usuário já possui perfil:', existingProfile.id);
           throw new AppError(409, 'Usuário já possui um perfil de profissional');
         }
       }
       
       // Preparar dados para inserção
       const profissionalData: ProfissionalInsert = {
-        nome: data.nome,
-        ocupacao: data.ocupacao,
-        especialidades: data.especialidades || [],
+        nome: data.nome.trim(),
+        ocupacao: data.ocupacao.trim(),
+        especialidades: Array.isArray(data.especialidades) ? data.especialidades : [],
         experiencia: data.experiencia || '',
-        educacao: data.educacao || [],
-        certificacoes: data.certificacoes || [],
-        portfolio: data.portfolio || [],
+        educacao: Array.isArray(data.educacao) ? data.educacao : [],
+        certificacoes: Array.isArray(data.certificacoes) ? data.certificacoes : [],
+        portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
         disponibilidade: data.disponibilidade || '',
-        valor_hora: data.valor_hora || null,
+        valor_hora: data.valor_hora ? Number(data.valor_hora) : null,
         sobre: data.sobre || '',
         foto: data.foto || null,
-        telefone: data.telefone || '',
-        email: data.email || '',
+        telefone: data.telefone ? data.telefone.trim() : '',
+        email: data.email.trim(),
         website: data.website || null,
         endereco: data.endereco || null,
-        estado: data.estado,
-        cidade: data.cidade,
+        estado: data.estado.trim(),
+        cidade: data.cidade.trim(),
         social_media: data.social_media || null,
         status: 'PENDING', // Novos profissionais começam com status pendente
-        featured: data.featured || false,
+        featured: false, // Novos profissionais não são featured por padrão
         user_id: userId || null,
-        // created_at e updated_at são definidos pelo banco de dados com valor padrão
       };
+      
+      console.log('[SERVICE] Dados preparados para inserção:', JSON.stringify(profissionalData, null, 2));
       
       // Inserir no banco
       const { data: newProfissional, error } = await supabase
@@ -245,16 +263,17 @@ export class ProfissionalSupabaseService {
         .single();
       
       if (error) {
-        console.error('Erro ao criar profissional:', error);
+        console.error('[SERVICE] Erro ao criar profissional:', error);
         throw new AppError(500, `Erro ao criar profissional: ${error.message}`);
       }
       
+      console.log('[SERVICE] Profissional criado com sucesso:', newProfissional.id);
       return { 
         data: this.mapProfissionalRowToProfissional(newProfissional),
         message: 'Perfil de profissional criado com sucesso. Aguardando aprovação.'
       };
     } catch (error: any) {
-      console.error('Erro ao criar profissional:', error);
+      console.error('[SERVICE] Erro ao criar profissional:', error);
       if (error instanceof AppError) throw error;
       throw new AppError(500, error.message);
     }
@@ -274,6 +293,9 @@ export class ProfissionalSupabaseService {
     isAdmin = false
   ): Promise<SingleProfissionalResponse> {
     try {
+      console.log('[SERVICE] Iniciando atualização do profissional:', { id, userId, isAdmin });
+      console.log('[SERVICE] Dados recebidos:', JSON.stringify(data, null, 2));
+      
       // Verificar se o profissional existe
       const { data: existingProfissional, error: findError } = await supabase
         .from('profissionais')
@@ -282,6 +304,7 @@ export class ProfissionalSupabaseService {
         .single();
       
       if (findError) {
+        console.error('[SERVICE] Erro ao buscar profissional:', findError);
         if (findError.code === 'PGRST116') {
           throw new AppError(404, 'Profissional não encontrado');
         }
@@ -290,17 +313,24 @@ export class ProfissionalSupabaseService {
       
       // Se não for admin, verificar se o usuário é dono do perfil
       if (!isAdmin && userId && existingProfissional.user_id !== userId) {
+        console.log('[SERVICE] Tentativa de atualização não autorizada:', {
+          profileUserId: existingProfissional.user_id,
+          requestUserId: userId
+        });
         throw new AppError(403, 'Você não tem permissão para atualizar este perfil');
       }
       
       // Se for atualização do usuário comum (não admin) e estiver tentando mudar status ou featured
       if (!isAdmin) {
+        if (data.status !== undefined || data.featured !== undefined) {
+          console.log('[SERVICE] Tentativa de alterar campos restritos:', {
+            status: data.status,
+            featured: data.featured
+          });
+        }
         // Não permitir que usuários comuns alterem esses campos
         delete data.status;
         delete data.featured;
-        
-        // Atualização pelo usuário redefine o status para pendente
-        data.status = 'PENDING';
       }
       
       // Preparar dados para atualização
