@@ -13,13 +13,13 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     // Se estivermos em modo de desenvolvimento, podemos permitir solicitações sem autenticação
     if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
       console.log('[AUTH] Autenticação ignorada no ambiente de desenvolvimento');
-      // Adicionar um usuário fictício para desenvolvimento
+      // Adicionar um usuário fictício para desenvolvimento com UUID válido
       (req as any).auth = {
-        userId: 'dev-user-id',
+        userId: '00000000-0000-0000-0000-000000000000', // UUID válido para desenvolvimento
         sessionId: 'dev-session-id',
         session: { 
           user: { 
-            id: 'dev-user-id',
+            id: '00000000-0000-0000-0000-000000000000',
             email: 'dev@example.com',
             firstName: 'Dev',
             lastName: 'User' 
@@ -101,13 +101,13 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           if (process.env.NODE_ENV === 'development') {
             console.warn('[AUTH] ⚠️ Permitindo acesso em desenvolvimento apesar de erro no Clerk');
             
-            // Adicionar um usuário fictício para desenvolvimento
+            // Adicionar um usuário fictício para desenvolvimento com UUID válido
             (req as any).auth = {
-              userId: 'dev-user-id',
+              userId: '00000000-0000-0000-0000-000000000000', // UUID válido para desenvolvimento
               sessionId: 'dev-session-id',
               session: { 
                 user: { 
-                  id: 'dev-user-id',
+                  id: '00000000-0000-0000-0000-000000000000',
                   email: 'dev@example.com',
                   firstName: 'Dev',
                   lastName: 'User' 
