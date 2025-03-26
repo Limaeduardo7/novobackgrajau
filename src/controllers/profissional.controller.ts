@@ -69,10 +69,20 @@ class ProfissionalController {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
-      const result = await ProfissionalService.getProfissionalByUserId(userId);
-      console.log('[PROFILE] Perfil encontrado:', result.data ? 'Sim' : 'Não');
-      
-      res.json(result);
+      try {
+        const result = await ProfissionalService.getProfissionalByUserId(userId);
+        console.log('[PROFILE] Perfil encontrado:', result.data ? 'Sim' : 'Não');
+        res.json(result);
+      } catch (error: any) {
+        if (error instanceof AppError && error.statusCode === 404) {
+          return res.status(404).json({ 
+            error: 'Perfil não encontrado',
+            message: 'Você ainda não possui um perfil de profissional. Por favor, crie seu perfil primeiro.',
+            code: 'PROFILE_NOT_FOUND'
+          });
+        }
+        throw error;
+      }
     } catch (error: any) {
       console.error('[PROFILE] Erro ao buscar perfil:', error);
       if (error instanceof AppError) {
