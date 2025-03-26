@@ -11,6 +11,7 @@ import { empresaRoutes, empresaAdminRoutes } from './routes/empresa.routes';
 import { profissionalRoutes, profissionalAdminRoutes } from './routes/profissional.routes';
 import { profissionalRpcRoutes } from './routes/profissional.rpc.routes';
 import { jobRoutes, jobAdminRoutes } from './routes/job.routes';
+import jobApplicationRoutes from './routes/job-application.routes';
 
 // Carrega as variáveis de ambiente
 dotenv.config();
@@ -184,6 +185,7 @@ app.use('/api/profissionais', profissionalRpcRoutes);
 app.use('/api/admin/profissionais', profissionalAdminRoutes);
 app.use('/api/vagas', jobRoutes);
 app.use('/api/admin/vagas', jobAdminRoutes);
+app.use('/api/vagas/applications', jobApplicationRoutes);
 
 // Middleware de tratamento de erros
 app.use(errorHandler);
