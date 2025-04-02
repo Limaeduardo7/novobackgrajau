@@ -199,7 +199,7 @@ export class EmpresaSupabaseService {
         opening_hours: data.opening_hours || null,
         is_featured: data.is_featured || false,
         rating: data.rating || null,
-        status: data.status || 'active'
+        status: data.status || 'pendente'
         // created_at e updated_at são definidos pelo banco de dados com valor padrão
       };
       
@@ -587,6 +587,33 @@ export class EmpresaSupabaseService {
    * @private
    */
   private mapEmpresaRowToEmpresa(data: EmpresaRow): Empresa {
+    // Mapear o status antigo para o novo formato
+    let status: 'aprovado' | 'rejeitado' | 'pendente';
+    
+    switch (data.status) {
+      case 'active':
+        status = 'aprovado';
+        break;
+      case 'inactive':
+        status = 'rejeitado';
+        break;
+      case 'pending':
+        status = 'pendente';
+        break;
+      // Caso já esteja nos novos formatos
+      case 'aprovado':
+        status = 'aprovado';
+        break;
+      case 'rejeitado':
+        status = 'rejeitado';
+        break;
+      case 'pendente':
+        status = 'pendente';
+        break;
+      default:
+        status = 'pendente';
+    }
+    
     return {
       id: data.id,
       name: data.name,
@@ -604,7 +631,8 @@ export class EmpresaSupabaseService {
       opening_hours: data.opening_hours as Empresa['opening_hours'],
       is_featured: data.is_featured,
       rating: data.rating,
-      status: data.status as 'active' | 'inactive' | 'pending',
+      status,
+      rejectionReason: null, // O campo pode não existir na tabela ainda
       created_at: new Date(data.created_at),
       updated_at: new Date(data.updated_at)
     };
