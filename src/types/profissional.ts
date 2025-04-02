@@ -28,6 +28,7 @@ export interface Profissional {
     outro?: string | null;
   } | null;
   status: 'APPROVED' | 'REJECTED' | 'PENDING';
+  rejectionReason?: string | null;
   featured: boolean;
   created_at: Date;
   updated_at: Date;

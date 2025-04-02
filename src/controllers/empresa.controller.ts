@@ -238,6 +238,64 @@ export class EmpresaController {
   }
 
   /**
+   * Lista empresas com status pendente
+   */
+  async getPendingEmpresas(req: Request, res: Response) {
+    try {
+      const params = {
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
+        status: 'pendente' as 'pendente',
+        sortBy: req.query.sortBy as string | undefined,
+        order: (req.query.order as 'asc' | 'desc' | undefined) || 'desc'
+      };
+
+      const result = await EmpresaService.getEmpresas(params);
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Erro ao buscar empresas pendentes' });
+      }
+    }
+  }
+
+  /**
+   * Atualiza o status de uma empresa
+   */
+  async updateEmpresaStatus(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { status, message } = req.body;
+      
+      // Validar o ID
+      const empresaId = parseInt(id);
+      if (isNaN(empresaId)) {
+        return res.status(400).json({ error: 'ID inválido. Formato numérico esperado.' });
+      }
+      
+      // Validar o status
+      if (!['aprovado', 'rejeitado', 'pendente'].includes(status)) {
+        return res.status(400).json({ error: 'Status inválido. Use aprovado, rejeitado ou pendente.' });
+      }
+      
+      const result = await EmpresaService.updateEmpresaStatus(
+        empresaId, 
+        status as 'aprovado' | 'rejeitado' | 'pendente',
+        message
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Erro ao atualizar status da empresa' });
+      }
+    }
+
+  /**
    * Lista as categorias disponíveis
    */
   async getCategorias(req: Request, res: Response) {

@@ -325,7 +325,7 @@ class ProfissionalController {
   }
 
   /**
-   * [ADMIN] Lista todos os profissionais (incluindo pendentes e rejeitados)
+   * [ADMIN] Lista todos os profissionais (com opção de filtragem)
    */
   async getAllProfissionais(req: Request, res: Response) {
     try {
@@ -355,12 +355,38 @@ class ProfissionalController {
   }
 
   /**
+   * [ADMIN] Lista profissionais com status pendente
+   */
+  async getPendingProfissionais(req: Request, res: Response) {
+    try {
+      const params: ProfissionalParams = {
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 10,
+        ocupacao: req.query.ocupacao as string | undefined,
+        status: 'PENDING',
+        sortBy: req.query.sortBy as string | undefined,
+        order: (req.query.order as 'asc' | 'desc' | undefined) || 'desc'
+      };
+
+      const result = await ProfissionalService.getProfissionais(params);
+      
+      res.json(result);
+    } catch (error: any) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: 'Erro ao buscar profissionais pendentes' });
+      }
+    }
+  }
+
+  /**
    * [ADMIN] Atualiza o status de um profissional
    */
   async updateProfissionalStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, message } = req.body;
       
       // Validar o ID
       if (!id) {
@@ -374,7 +400,8 @@ class ProfissionalController {
       
       const result = await ProfissionalService.updateProfissionalStatus(
         id, 
-        status as 'APPROVED' | 'REJECTED' | 'PENDING'
+        status as 'APPROVED' | 'REJECTED' | 'PENDING',
+        message
       );
       
       res.json(result);

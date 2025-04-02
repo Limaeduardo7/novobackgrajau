@@ -29,9 +29,11 @@ if (process.env.NODE_ENV === 'development') {
 
 // Rotas administrativas
 adminRouter.get('/', requireAuth, checkPermission('admin'), empresaController.getEmpresas);
+adminRouter.get('/pending', requireAuth, checkPermission('admin'), empresaController.getPendingEmpresas);
 adminRouter.get('/:id', requireAuth, checkPermission('admin'), empresaController.getEmpresaById);
 adminRouter.post('/', requireAuth, checkPermission('admin'), empresaController.createEmpresa);
 adminRouter.put('/:id', requireAuth, checkPermission('admin'), empresaController.updateEmpresa);
+adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), empresaController.updateEmpresaStatus);
 adminRouter.delete('/:id', requireAuth, checkPermission('admin'), empresaController.deleteEmpresa);
 
 export const empresaRoutes = router;

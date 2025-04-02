@@ -5,7 +5,9 @@ import { Profissional, ProfissionalParams, PaginatedProfissionalResponse, Single
 import { Database } from '../types/supabase';
 
 type ProfissionalRow = Database['public']['Tables']['profissionais']['Row'];
-type ProfissionalInsert = Database['public']['Tables']['profissionais']['Insert'];
+type ProfissionalInsert = Database['public']['Tables']['profissionais']['Insert'] & {
+  slug?: string;
+};
 type ProfissionalUpdate = Database['public']['Tables']['profissionais']['Update'];
 
 /**
@@ -26,9 +28,9 @@ export class ProfissionalSupabaseService {
         cidade,
         search,
         featured,
-        sortBy = 'created_at',
+        sortBy = 'nome',
         order = 'desc',
-        status = 'APPROVED'
+        status
       } = params;
 
       console.log('Buscando profissionais com parâmetros:', JSON.stringify(params));
@@ -41,11 +43,6 @@ export class ProfissionalSupabaseService {
       let query = supabase
         .from('profissionais')
         .select('*', { count: 'exact' });
-      
-      // Por padrão, mostra apenas profissionais aprovados
-      if (status !== 'ALL') {
-        query = query.eq('status', status);
-      }
       
       // Aplicar filtros
       if (ocupacao) {
@@ -60,12 +57,23 @@ export class ProfissionalSupabaseService {
         query = query.eq('cidade', cidade);
       }
       
-      if (search) {
-        query = query.or(`nome.ilike.%${search}%,sobre.ilike.%${search}%,ocupacao.ilike.%${search}%`);
-      }
-      
       if (featured !== undefined) {
         query = query.eq('featured', featured);
+      }
+      
+      // Filtrar por status
+      if (status === 'ALL') {
+        // Sem filtro de status - mostrar todos
+      } else if (status) {
+        query = query.eq('status', status);
+      } else {
+        // Por padrão, mostrar apenas profissionais aprovados em consultas públicas
+        query = query.eq('status', 'APPROVED');
+      }
+      
+      // Aplicar busca textual se fornecida
+      if (search) {
+        query = query.or(`nome.ilike.%${search}%,sobre.ilike.%${search}%,ocupacao.ilike.%${search}%`);
       }
       
       console.log('SQL gerado (aproximado):', `SELECT * FROM profissionais WHERE ... ORDER BY ${sortBy} ${order} LIMIT ${limit} OFFSET ${from}`);
@@ -151,14 +159,17 @@ export class ProfissionalSupabaseService {
         throw new AppError(400, 'ID do usuário é obrigatório');
       }
       
+      // Garantir que o userId seja tratado como texto
+      const userIdText = userId.toString();
+      
       const { data, error } = await supabase
         .from('profissionais')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', userIdText)
         .single();
       
       if (error) {
-        console.error('[SERVICE] Erro ao buscar profissional:', error);
+        console.log('[SERVICE] Erro ao buscar profissional:', error);
         if (error.code === 'PGRST116') {
           throw new AppError(404, 'Perfil de profissional não encontrado');
         }
@@ -198,15 +209,15 @@ export class ProfissionalSupabaseService {
       
       for (const [campo, label] of Object.entries(camposObrigatorios)) {
         if (!data[campo as keyof typeof data]) {
-          console.log(`[SERVICE] Campo obrigatório ausente: ${campo}`);
           throw new AppError(400, `${label} é obrigatório`);
         }
-        
-        if (typeof data[campo as keyof typeof data] !== 'string') {
-          console.log(`[SERVICE] Campo com tipo inválido: ${campo}`);
-          throw new AppError(400, `${label} deve ser uma string`);
-        }
       }
+      
+      // Garantir que o userId seja tratado como texto
+      const userIdText = userId?.toString();
+      
+      // Criar o slug a partir do nome
+      const slug = slugify(data.nome, { lower: true, strict: true });
       
       // Se o userId foi fornecido, verificar se o usuário já tem um perfil
       if (userId) {
@@ -230,27 +241,10 @@ export class ProfissionalSupabaseService {
       
       // Preparar dados para inserção
       const profissionalData: ProfissionalInsert = {
-        nome: data.nome.trim(),
-        ocupacao: data.ocupacao.trim(),
-        especialidades: Array.isArray(data.especialidades) ? data.especialidades : [],
-        experiencia: data.experiencia || '',
-        educacao: Array.isArray(data.educacao) ? data.educacao : [],
-        certificacoes: Array.isArray(data.certificacoes) ? data.certificacoes : [],
-        portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
-        disponibilidade: data.disponibilidade || '',
-        valor_hora: data.valor_hora ? Number(data.valor_hora) : null,
-        sobre: data.sobre || '',
-        foto: data.foto || null,
-        telefone: data.telefone ? data.telefone.trim() : '',
-        email: data.email.trim(),
-        website: data.website || null,
-        endereco: data.endereco || null,
-        estado: data.estado.trim(),
-        cidade: data.cidade.trim(),
-        social_media: data.social_media || null,
-        status: 'PENDING', // Novos profissionais começam com status pendente
-        featured: false, // Novos profissionais não são featured por padrão
-        user_id: userId || null,
+        ...data,
+        user_id: userIdText,
+        slug,
+        status: 'PENDING'
       };
       
       console.log('[SERVICE] Dados preparados para inserção:', JSON.stringify(profissionalData, null, 2));
@@ -304,11 +298,14 @@ export class ProfissionalSupabaseService {
         .single();
       
       if (findError) {
-        console.error('[SERVICE] Erro ao buscar profissional:', findError);
         if (findError.code === 'PGRST116') {
           throw new AppError(404, 'Profissional não encontrado');
         }
         throw new AppError(500, findError.message);
+      }
+      
+      if (!existingProfissional) {
+        throw new AppError(404, 'Profissional não encontrado');
       }
       
       // Se não for admin, verificar se o usuário é dono do perfil
@@ -382,11 +379,16 @@ export class ProfissionalSupabaseService {
   }
 
   /**
-   * Atualiza apenas o status de um profissional (para uso administrativo)
+   * Atualiza o status de um profissional (para uso administrativo)
    * @param id ID do profissional
    * @param status Novo status
+   * @param rejectionReason Motivo da rejeição (opcional, apenas para status REJECTED)
    */
-  async updateProfissionalStatus(id: string, status: 'APPROVED' | 'REJECTED' | 'PENDING'): Promise<SingleProfissionalResponse> {
+  async updateProfissionalStatus(
+    id: string, 
+    status: 'APPROVED' | 'REJECTED' | 'PENDING', 
+    rejectionReason?: string
+  ): Promise<SingleProfissionalResponse> {
     try {
       // Verificar se o profissional existe
       const { data: existingProfissional, error: findError } = await supabase
@@ -402,13 +404,32 @@ export class ProfissionalSupabaseService {
         throw new AppError(500, findError.message);
       }
       
-      // Atualizar apenas o status
+      if (!existingProfissional) {
+        throw new AppError(404, 'Profissional não encontrado');
+      }
+      
+      // Dados para atualização
+      const updateData: {
+        status: 'APPROVED' | 'REJECTED' | 'PENDING',
+        rejectionReason?: string | null,
+        updated_at: string
+      } = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Adicionar motivo de rejeição apenas se o status for REJECTED
+      if (status === 'REJECTED') {
+        updateData.rejectionReason = rejectionReason || null;
+      } else {
+        // Limpar o motivo de rejeição para outros status
+        updateData.rejectionReason = null;
+      }
+      
+      // Atualizar o status e potencialmente o motivo de rejeição
       const { data: updatedProfissional, error } = await supabase
         .from('profissionais')
-        .update({ 
-          status, 
-          updated_at: new Date().toISOString() 
-        })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -461,6 +482,10 @@ export class ProfissionalSupabaseService {
         throw new AppError(500, findError.message);
       }
       
+      if (!existingProfissional) {
+        throw new AppError(404, 'Profissional não encontrado');
+      }
+      
       // Apenas profissionais aprovados podem ser destacados
       if (featured && existingProfissional.status !== 'APPROVED') {
         throw new AppError(400, 'Apenas profissionais aprovados podem ser destacados');
@@ -506,13 +531,6 @@ export class ProfissionalSupabaseService {
         .select('id, user_id')
         .eq('id', id)
         .single();
-      
-      if (findError) {
-        if (findError.code === 'PGRST116') {
-          throw new AppError(404, 'Profissional não encontrado');
-        }
-        throw new AppError(500, findError.message);
-      }
       
       // Se não for admin, verificar se o usuário é dono do perfil
       if (!isAdmin && userId && existingProfissional.user_id !== userId) {

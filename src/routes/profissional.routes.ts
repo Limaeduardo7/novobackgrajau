@@ -41,12 +41,14 @@ if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true'
   console.log('⚠️ Bypass de autenticação ativo para rotas administrativas em desenvolvimento');
   // Em desenvolvimento, podemos optar por não usar autenticação para facilitar testes
   adminRouter.get('/', profissionalController.getAllProfissionais);
+  adminRouter.get('/pending', profissionalController.getPendingProfissionais);
   adminRouter.put('/:id/status', profissionalController.updateProfissionalStatus);
   adminRouter.put('/:id/feature', profissionalController.updateProfissionalFeatured);
   adminRouter.delete('/:id', profissionalController.deleteProfissional);
 } else {
   // Em produção, usamos autenticação e verificação de permissões
   adminRouter.get('/', requireAuth, checkPermission('admin'), profissionalController.getAllProfissionais);
+  adminRouter.get('/pending', requireAuth, checkPermission('admin'), profissionalController.getPendingProfissionais);
   adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalStatus);
   adminRouter.put('/:id/feature', requireAuth, checkPermission('admin'), profissionalController.updateProfissionalFeatured);
   adminRouter.delete('/:id', requireAuth, checkPermission('admin'), profissionalController.deleteProfissional);

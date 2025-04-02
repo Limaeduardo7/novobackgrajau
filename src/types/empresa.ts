@@ -29,7 +29,8 @@ export interface Empresa {
   } | null;
   is_featured: boolean;
   rating?: number | null;
-  status: 'active' | 'inactive' | 'pending';
+  status: 'aprovado' | 'rejeitado' | 'pendente';
+  rejectionReason?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -44,6 +45,7 @@ export interface EmpresaParams {
   featured?: boolean;
   sortBy?: string;
   order?: 'asc' | 'desc';
+  status?: 'aprovado' | 'rejeitado' | 'pendente' | 'all';
 }
 
 export interface SingleEmpresaResponse {

@@ -27,7 +27,8 @@ export class EmpresaSupabaseService {
         search,
         featured,
         sortBy = 'created_at',
-        order = 'desc'
+        order = 'desc',
+        status
       } = params;
 
       console.log('Buscando empresas com parâmetros:', JSON.stringify(params));
@@ -60,6 +61,14 @@ export class EmpresaSupabaseService {
       
       if (featured !== undefined) {
         query = query.eq('is_featured', featured);
+      }
+      
+      // Filtrar por status
+      if (status) {
+        query = query.eq('status', status);
+      } else {
+        // Por padrão, mostrar apenas empresas aprovadas em consultas públicas
+        query = query.eq('status', 'aprovado');
       }
       
       console.log('SQL gerado (aproximado):', `SELECT * FROM empresas WHERE ... ORDER BY ${sortBy} ${order} LIMIT ${limit} OFFSET ${from}`);
@@ -485,6 +494,89 @@ export class EmpresaSupabaseService {
       return { data: categorias };
     } catch (error: any) {
       console.error('Falha ao buscar categorias de empresas:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, error.message);
+    }
+  }
+
+  /**
+   * Atualiza o status de uma empresa e opcionalmente o motivo da rejeição
+   * @param id ID da empresa
+   * @param status Novo status ('aprovado', 'rejeitado', 'pendente')
+   * @param rejectionReason Motivo da rejeição (opcional, apenas para status 'rejeitado')
+   */
+  async updateEmpresaStatus(
+    id: number, 
+    status: 'aprovado' | 'rejeitado' | 'pendente',
+    rejectionReason?: string
+  ): Promise<SingleEmpresaResponse> {
+    try {
+      // Verificar se a empresa existe
+      const { data: existingEmpresa, error: findError } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('id', id)
+        .single();
+      
+      if (findError) {
+        if (findError.code === 'PGRST116') {
+          throw new AppError(404, 'Empresa não encontrada');
+        }
+        throw new AppError(500, findError.message);
+      }
+      
+      if (!existingEmpresa) {
+        throw new AppError(404, 'Empresa não encontrada');
+      }
+      
+      // Dados para atualização
+      const updateData: {
+        status: 'aprovado' | 'rejeitado' | 'pendente',
+        rejectionReason?: string | null,
+        updated_at: string
+      } = {
+        status,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Adicionar motivo de rejeição apenas se o status for 'rejeitado'
+      if (status === 'rejeitado') {
+        updateData.rejectionReason = rejectionReason || null;
+      } else {
+        // Limpar o motivo de rejeição para outros status
+        updateData.rejectionReason = null;
+      }
+      
+      // Atualizar o status e potencialmente o motivo de rejeição
+      const { data: updatedEmpresa, error } = await supabase
+        .from('empresas')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        throw new AppError(500, `Erro ao atualizar status da empresa: ${error.message}`);
+      }
+      
+      let message;
+      switch (status) {
+        case 'aprovado':
+          message = 'Empresa aprovada com sucesso';
+          break;
+        case 'rejeitado':
+          message = 'Empresa rejeitada com sucesso';
+          break;
+        default:
+          message = 'Status da empresa atualizado com sucesso';
+      }
+      
+      return { 
+        data: this.mapEmpresaRowToEmpresa(updatedEmpresa),
+        message
+      };
+    } catch (error: any) {
+      console.error('Erro ao atualizar status da empresa:', error);
       if (error instanceof AppError) throw error;
       throw new AppError(500, error.message);
     }
