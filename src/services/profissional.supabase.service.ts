@@ -533,7 +533,7 @@ export class ProfissionalSupabaseService {
         .single();
       
       // Se não for admin, verificar se o usuário é dono do perfil
-      if (!isAdmin && userId && existingProfissional.user_id !== userId) {
+      if (!isAdmin && userId && existingProfissional && existingProfissional.user_id !== userId) {
         throw new AppError(403, 'Você não tem permissão para excluir este perfil');
       }
       

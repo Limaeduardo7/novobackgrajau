@@ -78,7 +78,7 @@ export class EmpresaController {
         opening_hours: req.body.opening_hours || null,
         is_featured: req.body.is_featured === true,
         rating: req.body.rating ? Number(req.body.rating) : null,
-        status: req.body.status || 'active'
+        status: req.body.status || 'pendente'
       };
       
       // Validar campos obrigatórios
@@ -294,6 +294,7 @@ export class EmpresaController {
         res.status(500).json({ error: 'Erro ao atualizar status da empresa' });
       }
     }
+  }
 
   /**
    * Lista as categorias disponíveis
@@ -344,7 +345,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.5,
-          status: "active" as "active"
+          status: "pendente" as "pendente"
         },
         {
           name: "Restaurante Bom Sabor",
@@ -372,7 +373,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.8,
-          status: "active" as "active"
+          status: "pendente" as "pendente"
         },
         {
           name: "Farmácia Saúde",
@@ -400,7 +401,7 @@ export class EmpresaController {
           },
           is_featured: false,
           rating: 4.2,
-          status: "active" as "active"
+          status: "pendente" as "pendente"
         },
         {
           name: "Pet Shop Animal",
@@ -427,7 +428,7 @@ export class EmpresaController {
           },
           is_featured: false,
           rating: 4.0,
-          status: "active" as "active"
+          status: "pendente" as "pendente"
         },
         {
           name: "Padaria Pão Fresco",
@@ -454,7 +455,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.7,
-          status: "active" as "active"
+          status: "pendente" as "pendente"
         }
       ];
       
