@@ -15,7 +15,7 @@ export class JobController {
    */
   async list(req: Request, res: Response): Promise<Response> {
     try {
-      const { 
+      let { 
         page = 1, 
         limit = 10, 
         status = JobStatus.APPROVED, 
@@ -25,6 +25,15 @@ export class JobController {
         location,
         type 
       } = req.query;
+
+      // Mapear status em português para o formato esperado pelo enum
+      if (status === 'pendente') {
+        status = JobStatus.PENDING;
+      } else if (status === 'aprovado') {
+        status = JobStatus.APPROVED;
+      } else if (status === 'rejeitado') {
+        status = JobStatus.REJECTED;
+      }
 
       const jobs = await this.jobService.list({
         page: Number(page),
