@@ -4,11 +4,14 @@ import { requireAuth, checkPermission } from '../middlewares/auth';
 
 const router = Router();
 
-// Rotas públicas
-router.get('/', profissionalController.getProfissionais);
+// Rotas públicas específicas (colocadas antes da rota com parâmetro :id)
 router.get('/search', profissionalController.searchProfissionais);
 router.get('/featured', profissionalController.getProfissionaisEmDestaque);
 router.get('/ocupacoes', profissionalController.getOcupacoes);
+router.get('/pending', profissionalController.getPendingProfissionais);
+
+// Rota pública principal
+router.get('/', profissionalController.getProfissionais);
 
 // Rotas de usuário (autenticadas)
 router.post('/', requireAuth, profissionalController.createProfissional);
@@ -16,7 +19,7 @@ router.get('/me', requireAuth, profissionalController.getMyProfile);
 router.put('/me', requireAuth, profissionalController.updateMyProfile);
 router.delete('/me', requireAuth, profissionalController.deleteMyProfile);
 
-// Rota pública por ID (deve vir depois de /me)
+// Rota pública por ID (deve vir depois de todas as rotas específicas)
 router.get('/:id', profissionalController.getProfissionalById);
 
 // Rota para criar dados de exemplo (apenas em desenvolvimento)
