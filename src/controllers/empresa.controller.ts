@@ -87,7 +87,6 @@ export class EmpresaController {
         cidade: 'city',
         estado: 'state',
         status: 'status',
-        slug: 'slug',
         imagem: 'image',
         website: 'website',
         redesSociais: 'social_media',
@@ -107,6 +106,9 @@ export class EmpresaController {
           dadosMapeados[chave] = valor;
         }
       });
+      
+      // Remover explicitamente o campo 'slug' que não existe na tabela
+      delete dadosMapeados.slug;
       
       console.log('Dados mapeados:', dadosMapeados);
       
