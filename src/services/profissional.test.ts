@@ -3,7 +3,7 @@
  * 
  * Este arquivo contém testes para validar o comportamento de criação
  * de profissionais, especialmente considerando campos opcionais
- * como "estado" e "endereco".
+ * como "estado" e "endereco" na nova versão.
  */
 
 import ProfissionalService from './profissional.factory';
