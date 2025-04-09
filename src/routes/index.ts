@@ -6,4 +6,5 @@ export * from './empresa.routes';
 export * from './job.routes';
 export * from './blog.routes';
 export * from './system.routes';
-export * from './upload.routes'; 
+export * from './upload.routes';
+export * from './test.routes'; // Rotas para testes automatizados 

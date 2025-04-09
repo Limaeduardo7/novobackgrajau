@@ -202,7 +202,6 @@ export class ProfissionalSupabaseService {
       const camposObrigatorios = {
         nome: 'Nome',
         ocupacao: 'Ocupação',
-        estado: 'Estado',
         cidade: 'Cidade',
         email: 'Email'
       };
