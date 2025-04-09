@@ -9,11 +9,11 @@ import { testarCriacaoProfissional } from '../services/profissional.test';
 const router = Router();
 
 /**
- * @route   GET /api/test/profissional/criar-sem-estado
- * @desc    Testa a criação de um profissional sem o campo estado
+ * @route   GET /api/test/profissional/criar-sem-campos-opcionais
+ * @desc    Testa a criação de um profissional sem os campos opcionais (estado e endereço)
  * @access  Apenas desenvolvimento
  */
-router.get('/profissional/criar-sem-estado', async (req, res) => {
+router.get('/profissional/criar-sem-campos-opcionais', async (req, res) => {
   try {
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({
