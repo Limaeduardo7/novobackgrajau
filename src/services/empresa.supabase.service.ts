@@ -179,13 +179,13 @@ export class EmpresaSupabaseService {
         throw new AppError(400, 'Cidade é obrigatória e deve ser uma string');
       }
       
-      // Gerar slug
-      const slug = slugify(data.name, { lower: true, strict: true });
+      // Não gerar mais o slug, já que a coluna não existe na tabela
+      // const slug = slugify(data.name, { lower: true, strict: true });
       
-      // Preparar dados para inserção
+      // Preparar dados para inserção (sem o campo slug)
       const empresaData: EmpresaInsert = {
         name: data.name,
-        slug,
+        // slug, // Remover esta linha
         category: data.category,
         description: data.description || null,
         image: data.image || null,
@@ -249,16 +249,16 @@ export class EmpresaSupabaseService {
       
       // Verificar se está tentando mudar o nome/slug
       if (data.name && data.name !== existingEmpresa.name) {
-        const slug = slugify(data.name, { lower: true, strict: true });
+        // Não precisamos mais gerar um slug, já que a coluna não existe
+        // const slug = slugify(data.name, { lower: true, strict: true });
         
-        // Adicionar slug aos dados de atualização
-        data.slug = slug;
+        // Não adicionar mais o slug aos dados
+        // data.slug = slug;
       }
       
       // Preparar dados para atualização
       const updateData: EmpresaUpdate = {
         ...(data.name && { name: data.name }),
-        ...(data.slug && { slug: data.slug }),
         ...(data.category && { category: data.category }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.image !== undefined && { image: data.image }),

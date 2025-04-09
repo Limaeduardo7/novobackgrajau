@@ -1,7 +1,6 @@
 export interface Empresa {
   id: number;
   name: string;
-  slug?: string;
   category: string;
   description?: string | null;
   image?: string | null;
