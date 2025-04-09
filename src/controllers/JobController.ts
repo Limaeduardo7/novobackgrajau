@@ -78,7 +78,45 @@ export class JobController {
    */
   async create(req: Request, res: Response): Promise<Response> {
     try {
-      const userId = (req as any).user?.id; // Assumindo que existe middleware de autenticação
+      // Usar req.auth em vez de req.user para obter o ID do usuário
+      const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      
+      // Em ambiente de desenvolvimento, sempre permitir criar vagas
+      if (!userId && process.env.NODE_ENV === 'development') {
+        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento');
+        const devUserId = '00000000-0000-0000-0000-000000000000';
+        
+        const {
+          title,
+          description,
+          requirements,
+          benefits,
+          salary,
+          type,
+          location,
+          businessId,
+          expiresAt,
+          tags
+        } = req.body;
+
+        console.log('[JOB] Dados recebidos:', req.body);
+
+        const job = await this.jobService.create({
+          title,
+          description,
+          requirements,
+          benefits,
+          salary,
+          type,
+          location,
+          businessId,
+          expiresAt,
+          tags,
+          userId: devUserId
+        });
+
+        return res.status(201).json(job);
+      }
       
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -96,6 +134,8 @@ export class JobController {
         expiresAt,
         tags
       } = req.body;
+
+      console.log('[JOB] Dados recebidos:', req.body);
 
       const job = await this.jobService.create({
         title,
@@ -127,7 +167,43 @@ export class JobController {
   async update(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id; // Assumindo que existe middleware de autenticação
+      // Usar req.auth em vez de req.user
+      const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      
+      // Em ambiente de desenvolvimento, sempre permitir atualizar vagas
+      if (!userId && process.env.NODE_ENV === 'development') {
+        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para atualização');
+        const devUserId = '00000000-0000-0000-0000-000000000000';
+        
+        const {
+          title,
+          description,
+          requirements,
+          benefits,
+          salary,
+          type,
+          location,
+          expiresAt,
+          tags
+        } = req.body;
+
+        console.log('[JOB] Dados de atualização recebidos:', req.body);
+
+        const job = await this.jobService.update(id, {
+          title,
+          description,
+          requirements,
+          benefits,
+          salary,
+          type,
+          location,
+          expiresAt,
+          tags,
+          userId: devUserId
+        });
+
+        return res.json(job);
+      }
       
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -144,6 +220,8 @@ export class JobController {
         expiresAt,
         tags
       } = req.body;
+
+      console.log('[JOB] Dados de atualização recebidos:', req.body);
 
       const job = await this.jobService.update(id, {
         title,
@@ -174,7 +252,18 @@ export class JobController {
   async delete(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const userId = (req as any).user?.id; // Assumindo que existe middleware de autenticação
+      // Usar req.auth em vez de req.user
+      const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      
+      // Em ambiente de desenvolvimento, sempre permitir excluir vagas
+      if (!userId && process.env.NODE_ENV === 'development') {
+        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para exclusão');
+        const devUserId = '00000000-0000-0000-0000-000000000000';
+        
+        await this.jobService.delete(id, devUserId);
+        
+        return res.status(204).send();
+      }
       
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -199,7 +288,18 @@ export class JobController {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      const userId = (req as any).user?.id; // Assumindo que existe middleware de autenticação
+      // Usar req.auth em vez de req.user
+      const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      
+      // Em ambiente de desenvolvimento, sempre permitir atualizar status
+      if (!userId && process.env.NODE_ENV === 'development') {
+        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para atualizar status');
+        const devUserId = '00000000-0000-0000-0000-000000000000';
+        
+        const job = await this.jobService.updateStatus(id, status, devUserId);
+        
+        return res.json(job);
+      }
       
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -224,7 +324,18 @@ export class JobController {
     try {
       const { id } = req.params;
       const { featured } = req.body;
-      const userId = (req as any).user?.id; // Assumindo que existe middleware de autenticação
+      // Usar req.auth em vez de req.user
+      const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      
+      // Em ambiente de desenvolvimento, sempre permitir atualizar destaque
+      if (!userId && process.env.NODE_ENV === 'development') {
+        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para alterar destaque');
+        const devUserId = '00000000-0000-0000-0000-000000000000';
+        
+        const job = await this.jobService.toggleFeatured(id, featured, devUserId);
+        
+        return res.json(job);
+      }
       
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
@@ -259,7 +370,6 @@ export class JobController {
       console.error('Erro ao obter vagas em destaque:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  }
 
   /**
    * Incrementa visualizações de uma vaga
@@ -278,7 +388,6 @@ export class JobController {
       console.error('Erro ao incrementar visualizações:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  }
 
   /**
    * Incrementa aplicações para uma vaga
@@ -297,7 +406,6 @@ export class JobController {
       console.error('Erro ao incrementar aplicações:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  }
 
   /**
    * Obtém vagas por empresa
@@ -305,15 +413,12 @@ export class JobController {
   async getByBusiness(req: Request, res: Response): Promise<Response> {
     try {
       const { businessId } = req.params;
-      const { page = 1, limit = 10, status } = req.query;
+      const { page = 1, limit = 10 } = req.query;
       
       const jobs = await this.jobService.getByBusiness(
         businessId,
-        {
-          page: Number(page),
-          limit: Number(limit),
-          status: status as string
-        }
+        Number(page),
+        Number(limit)
       );
       
       return res.json(jobs);
@@ -321,7 +426,7 @@ export class JobController {
       if (error instanceof AppError) {
         return res.status(error.statusCode).json({ error: error.message });
       }
-      console.error('Erro ao obter vagas da empresa:', error);
+      console.error('Erro ao obter vagas por empresa:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }

@@ -401,7 +401,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.5,
-          status: "pendente" as "pendente"
+          status: "pendente" as const
         },
         {
           name: "Restaurante Bom Sabor",
@@ -429,7 +429,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.8,
-          status: "pendente" as "pendente"
+          status: "pendente" as const
         },
         {
           name: "Farmácia Saúde",
@@ -457,7 +457,7 @@ export class EmpresaController {
           },
           is_featured: false,
           rating: 4.2,
-          status: "pendente" as "pendente"
+          status: "pendente" as const
         },
         {
           name: "Pet Shop Animal",
@@ -484,7 +484,7 @@ export class EmpresaController {
           },
           is_featured: false,
           rating: 4.0,
-          status: "pendente" as "pendente"
+          status: "pendente" as const
         },
         {
           name: "Padaria Pão Fresco",
@@ -511,7 +511,7 @@ export class EmpresaController {
           },
           is_featured: true,
           rating: 4.7,
-          status: "pendente" as "pendente"
+          status: "pendente" as const
         }
       ];
       
