@@ -139,7 +139,6 @@ class ProfissionalController {
       const camposObrigatorios = {
         nome: 'Nome',
         ocupacao: 'Ocupação',
-        cidade: 'Cidade',
         email: 'Email'
       };
       
