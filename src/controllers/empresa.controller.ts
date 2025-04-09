@@ -71,23 +71,62 @@ export class EmpresaController {
         });
       }
       
-      // Processamento e validação de tipos
+      // Mapear campos em português para inglês (compatibilidade frontend-backend)
+      const dadosOriginal = req.body;
+      const mapeamentoCampos = {
+        nome: 'name',
+        categoria: 'category',
+        descricao: 'description',
+        endereco: 'address',
+        telefone: 'phone',
+        email: 'email',
+        documento: 'document',
+        tipoDocumento: 'document_type',
+        horarioFuncionamento: 'opening_hours',
+        servicos: 'services',
+        cidade: 'city',
+        estado: 'state',
+        status: 'status',
+        slug: 'slug',
+        imagem: 'image',
+        website: 'website',
+        redesSociais: 'social_media',
+        emDestaque: 'is_featured'
+      };
+      
+      // Criar um novo objeto com os campos mapeados
+      const dadosMapeados: Record<string, any> = {};
+      
+      // Transferir os dados mapeando os nomes dos campos
+      Object.entries(dadosOriginal).forEach(([chave, valor]) => {
+        const chaveEmIngles = mapeamentoCampos[chave as keyof typeof mapeamentoCampos];
+        if (chaveEmIngles) {
+          dadosMapeados[chaveEmIngles] = valor;
+        } else {
+          // Manter campos que não precisam de mapeamento
+          dadosMapeados[chave] = valor;
+        }
+      });
+      
+      console.log('Dados mapeados:', dadosMapeados);
+      
+      // Processamento e validação de tipos usando os dados mapeados
       const empresaData = {
-        name: req.body.name ? String(req.body.name).trim() : '',
-        category: req.body.category ? String(req.body.category).trim() : '',
-        description: req.body.description ? String(req.body.description).trim() : null,
-        image: req.body.image || null,
-        address: req.body.address ? String(req.body.address).trim() : null,
-        phone: req.body.phone ? String(req.body.phone).trim() : null,
-        state: req.body.state ? String(req.body.state).trim() : '',
-        city: req.body.city ? String(req.body.city).trim() : '',
-        email: req.body.email || null,
-        website: req.body.website || null,
-        social_media: req.body.social_media || null,
-        opening_hours: req.body.opening_hours || null,
-        is_featured: req.body.is_featured === true,
-        rating: req.body.rating ? Number(req.body.rating) : null,
-        status: req.body.status || 'pendente'
+        name: dadosMapeados.name ? String(dadosMapeados.name).trim() : '',
+        category: dadosMapeados.category ? String(dadosMapeados.category).trim() : '',
+        description: dadosMapeados.description ? String(dadosMapeados.description).trim() : null,
+        image: dadosMapeados.image || null,
+        address: dadosMapeados.address ? String(dadosMapeados.address).trim() : null,
+        phone: dadosMapeados.phone ? String(dadosMapeados.phone).trim() : null,
+        state: dadosMapeados.state ? String(dadosMapeados.state).trim() : '',
+        city: dadosMapeados.city ? String(dadosMapeados.city).trim() : '',
+        email: dadosMapeados.email || null,
+        website: dadosMapeados.website || null,
+        social_media: dadosMapeados.social_media || null,
+        opening_hours: dadosMapeados.opening_hours || null,
+        is_featured: dadosMapeados.is_featured === true,
+        rating: dadosMapeados.rating ? Number(dadosMapeados.rating) : null,
+        status: dadosMapeados.status || 'pendente'
       };
       
       // Validar campos obrigatórios
