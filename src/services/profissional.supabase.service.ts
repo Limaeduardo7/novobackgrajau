@@ -1,13 +1,10 @@
 import { supabase, handleSupabaseError } from '../lib/supabase';
-import slugify from 'slugify';
 import { AppError } from '../middlewares/errorHandler';
 import { Profissional, ProfissionalParams, PaginatedProfissionalResponse, SingleProfissionalResponse } from '../types/profissional';
 import { Database } from '../types/supabase';
 
 type ProfissionalRow = Database['public']['Tables']['profissionais']['Row'];
-type ProfissionalInsert = Database['public']['Tables']['profissionais']['Insert'] & {
-  slug?: string;
-};
+type ProfissionalInsert = Database['public']['Tables']['profissionais']['Insert'];
 type ProfissionalUpdate = Database['public']['Tables']['profissionais']['Update'];
 
 /**
@@ -214,9 +211,6 @@ export class ProfissionalSupabaseService {
       // Garantir que o userId seja tratado como texto
       const userIdText = userId?.toString();
       
-      // Criar o slug a partir do nome
-      const slug = slugify(data.nome, { lower: true, strict: true });
-      
       // Se o userId foi fornecido, verificar se o usuário já tem um perfil
       if (userId) {
         console.log('[SERVICE] Verificando perfil existente para userId:', userId);
@@ -241,7 +235,6 @@ export class ProfissionalSupabaseService {
       const profissionalData: ProfissionalInsert = {
         ...data,
         user_id: userIdText,
-        slug,
         status: 'PENDING'
       };
       
