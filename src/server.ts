@@ -49,39 +49,9 @@ app.use(helmet({
 
 app.use(morgan('dev'));
 
-// Middleware para depurar requisições JSON
-app.use((req, res, next) => {
-  const rawBody: Buffer[] = [];
-  req.on('data', (chunk: Buffer) => {
-    rawBody.push(chunk);
-  });
-  
-  req.on('end', () => {
-    if (rawBody.length > 0) {
-      const rawBodyStr = Buffer.concat(rawBody).toString();
-      console.log('Corpo bruto da requisição:', rawBodyStr);
-      try {
-        const jsonBody = JSON.parse(rawBodyStr);
-        console.log('JSON parseado:', jsonBody);
-      } catch (err: unknown) {
-        const error = err as Error;
-        console.log('Falha ao parsear JSON do corpo:', error.message);
-      }
-    } else {
-      console.log('Corpo da requisição vazio ou não disponível');
-    }
-    next();
-  });
-});
-
+// Configuração aprimorada para o middleware express.json
 app.use(express.json({ 
-  limit: '10mb',
-  verify: (req, res, buf, encoding) => {
-    if (buf && buf.length) {
-      // Armazenar o buffer bruto para verificação adicional, se necessário
-      (req as any).rawBody = buf.toString(encoding as BufferEncoding || 'utf8');
-    }
-  }
+  limit: '10mb'
 }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
