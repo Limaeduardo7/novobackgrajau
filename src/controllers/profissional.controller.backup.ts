@@ -53,7 +53,6 @@ class ProfissionalController {
         res.status(500).json({ error: 'Erro ao buscar profissional' });
       }
     }
-  }
 
   /**
    * Retorna detalhes do próprio perfil de profissional (para usuários autenticados)

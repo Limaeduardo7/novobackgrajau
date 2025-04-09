@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import EmpresaService from '../services/empresa.factory';
-import { AppError } from '../middlewares/errorHandler';
+import { AppError } from '../utils/AppError';
 
 export class EmpresaController {
   /**
@@ -481,4 +481,6 @@ export class EmpresaController {
       }
     }
   }
-} 
+}
+
+export default new EmpresaController(); 
