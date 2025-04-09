@@ -5,58 +5,34 @@ import { AppError } from './errorHandler';
 // Middleware de autenticação usando Clerk
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Log para debug do protocolo e headers
-    console.log(`[AUTH] Protocolo: ${req.protocol}`);
-    console.log(`[AUTH] Headers:`, JSON.stringify(req.headers, null, 2));
-    console.log(`[AUTH] Método: ${req.method}, URL: ${req.originalUrl}`);
+    console.log('[AUTH] Protocolo:', req.protocol);
+    console.log('[AUTH] Headers:', req.headers);
     
-    // Se estivermos em modo de desenvolvimento, podemos permitir solicitações sem autenticação
-    if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
-      console.log('[AUTH] Autenticação ignorada no ambiente de desenvolvimento');
-      // Adicionar um usuário fictício para desenvolvimento com UUID válido
-      (req as any).auth = {
-        userId: '00000000-0000-0000-0000-000000000000', // UUID válido para desenvolvimento
-        sessionId: 'dev-session-id',
-        session: { 
-          user: { 
-            id: '00000000-0000-0000-0000-000000000000',
-            email: 'dev@example.com',
-            firstName: 'Dev',
-            lastName: 'User' 
-          } 
-        }
-      };
-      return next();
-    }
+    console.log('[AUTH] Método:', req.method, 'URL:', req.originalUrl);
     
-    // Verificação flexível do cabeçalho de autorização
-    const authHeader = req.headers.authorization || req.headers['x-authorization'] as string;
-    const tokenFromQuery = req.query.token as string;
-    const tokenFromBody = req.body?.token;
-    
-    // Log para debug
+    // Extrair o token do cabeçalho Authorization, query ou body
+    const authHeader = req.headers.authorization;
     console.log('[AUTH] Auth Header:', authHeader);
-    console.log('[AUTH] Token Query:', tokenFromQuery);
-    console.log('[AUTH] Token Body:', tokenFromBody);
     
-    // Tentar obter o token de várias fontes
+    const queryToken = req.query.token as string | undefined;
+    console.log('[AUTH] Token Query:', queryToken);
+    
+    const bodyToken = req.body?.token as string | undefined;
+    console.log('[AUTH] Token Body:', bodyToken);
+    
+    // Verificar token em diferentes lugares
     let token: string | undefined;
     
-    if (authHeader) {
-      // Se for Bearer, extrair o token
-      if (authHeader.startsWith('Bearer ')) {
-        token = authHeader.split(' ')[1];
-      } else {
-        // Se não começar com Bearer, pode ser o token direto
-        token = authHeader;
-      }
-    } else if (tokenFromQuery) {
-      token = tokenFromQuery;
-    } else if (tokenFromBody) {
-      token = tokenFromBody;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Remove 'Bearer ' do início
+      console.log('[AUTH] Token extraído:', token.substring(0, 20) + '...');
+    } else if (queryToken) {
+      token = queryToken;
+      console.log('[AUTH] Token extraído da query');
+    } else if (bodyToken) {
+      token = bodyToken;
+      console.log('[AUTH] Token extraído do body');
     }
-    
-    console.log('[AUTH] Token extraído:', token ? `${token.substring(0, 15)}...` : 'nenhum');
     
     if (!token) {
       // Adicionar cabeçalhos CORS antecipadamente para que o cliente receba a resposta
@@ -64,6 +40,24 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
       
+      // Em ambiente de desenvolvimento, permitir requisições sem token
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[AUTH] ⚠️ Permitindo acesso sem token em ambiente de desenvolvimento');
+        (req as any).auth = {
+          userId: 'dev-user',
+          isAdmin: false,
+          session: {
+            user: {
+              id: 'dev-user',
+              email: 'dev@example.com',
+              firstName: 'Dev',
+              lastName: 'User'
+            }
+          }
+        };
+        return next();
+      }
+
       throw new AppError(401, 'Token não fornecido');
     }
     
@@ -101,7 +95,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           if (process.env.NODE_ENV === 'development') {
             console.warn('[AUTH] ⚠️ Permitindo acesso em desenvolvimento apesar de erro no Clerk');
             
-            // Adicionar um usuário fictício para desenvolvimento com UUID válido
+            // Adicionar um usuário fictício para desenvolvimento
             (req as any).auth = {
               userId: '00000000-0000-0000-0000-000000000000',
               sessionId: 'dev-session-id',
@@ -119,7 +113,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           }
           
           // Em produção, retorne erro normalmente
-          return next(new AppError(401, 'Autenticação inválida'));
+          return res.status(401).json({ error: 'Autenticação inválida' });
         }
         
         try {
@@ -159,7 +153,29 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           return next();
         } catch (error) {
           console.error('[AUTH] Erro ao buscar dados do usuário:', error);
-          return next(new AppError(401, 'Erro ao obter dados do usuário'));
+          
+          // Se estiver em desenvolvimento, permita passar mesmo com erro ao buscar dados
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[AUTH] ⚠️ Permitindo acesso em desenvolvimento apesar de erro ao buscar dados do usuário');
+            
+            // Adicionar um usuário fictício para desenvolvimento
+            (req as any).auth = {
+              userId: '00000000-0000-0000-0000-000000000000',
+              sessionId: 'dev-session-id',
+              session: { 
+                user: { 
+                  id: '00000000-0000-0000-0000-000000000000',
+                  email: 'dev@example.com',
+                  firstName: 'Dev',
+                  lastName: 'User' 
+                } 
+              }
+            };
+            
+            return next();
+          }
+          
+          return res.status(401).json({ error: 'Erro ao obter dados do usuário' });
         }
       });
     } catch (clerkError) {
@@ -168,14 +184,51 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       // Se estiver em desenvolvimento, permita passar mesmo com erro no Clerk
       if (process.env.NODE_ENV === 'development') {
         console.warn('[AUTH] ⚠️ Permitindo acesso em desenvolvimento apesar de exceção no Clerk');
+        
+        // Adicionar um usuário fictício para desenvolvimento
+        (req as any).auth = {
+          userId: '00000000-0000-0000-0000-000000000000',
+          sessionId: 'dev-session-id',
+          session: { 
+            user: { 
+              id: '00000000-0000-0000-0000-000000000000',
+              email: 'dev@example.com',
+              firstName: 'Dev',
+              lastName: 'User' 
+            } 
+          }
+        };
+        
         return next();
       }
       
-      throw new AppError(401, 'Erro de autenticação');
+      return res.status(401).json({ error: 'Erro de autenticação' });
     }
   } catch (error) {
     console.error('[AUTH] Erro na autenticação:', error);
-    next(new AppError(401, 'Não autorizado'));
+    
+    // Em ambiente de desenvolvimento, permitir mesmo com erro geral
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[AUTH] ⚠️ Permitindo acesso em desenvolvimento apesar de erro na autenticação');
+      
+      // Adicionar um usuário fictício para desenvolvimento
+      (req as any).auth = {
+        userId: '00000000-0000-0000-0000-000000000000',
+        sessionId: 'dev-session-id',
+        session: { 
+          user: { 
+            id: '00000000-0000-0000-0000-000000000000',
+            email: 'dev@example.com',
+            firstName: 'Dev',
+            lastName: 'User' 
+          } 
+        }
+      };
+      
+      return next();
+    }
+    
+    return res.status(401).json({ error: 'Não autorizado' });
   }
 };
 
