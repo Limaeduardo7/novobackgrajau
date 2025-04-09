@@ -617,7 +617,6 @@ export class EmpresaSupabaseService {
     return {
       id: data.id,
       name: data.name,
-      slug: data.slug || undefined,
       category: data.category,
       description: data.description,
       image: data.image,
