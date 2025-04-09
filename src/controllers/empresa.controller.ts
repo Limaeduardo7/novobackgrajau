@@ -148,9 +148,15 @@ export class EmpresaController {
         return res.status(400).json({ error: 'Cidade é obrigatória' });
       }
       
+      // Garantir que não há campo 'slug' em nenhum nível do objeto
+      if ('slug' in empresaData) delete empresaData.slug;
+      
+      console.log('Objeto final antes de enviar para o serviço:', JSON.stringify(empresaData, null, 2));
+      
       const result = await EmpresaService.createEmpresa(empresaData);
       res.status(201).json(result);
     } catch (error: any) {
+      console.error('Erro ao criar empresa:', error);
       console.error('Erro detalhado na criação de empresa:', error);
       
       if (error instanceof AppError) {
