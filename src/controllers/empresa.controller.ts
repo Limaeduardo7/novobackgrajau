@@ -60,7 +60,16 @@ export class EmpresaController {
    */
   async createEmpresa(req: Request, res: Response) {
     try {
-      console.log('Dados recebidos no POST:', JSON.stringify(req.body, null, 2));
+      console.log('Dados recebidos no POST:', req.body);
+      
+      // Verificar se o corpo da requisição está vazio
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ 
+          error: 'Corpo da requisição vazio', 
+          message: 'É necessário fornecer os dados da empresa no corpo da requisição',
+          campos_obrigatorios: ['name', 'category', 'state', 'city']
+        });
+      }
       
       // Processamento e validação de tipos
       const empresaData = {
