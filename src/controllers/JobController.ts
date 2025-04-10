@@ -117,7 +117,10 @@ export class JobController {
         localizacao,
         empresa,
         dataExpiracao,
-        categorias
+        categorias,
+        
+        // Campo específico para ID da empresa (suporte adicional)
+        empresaId
       } = req.body;
 
       // Mapeamento de campos para o formato esperado
@@ -128,7 +131,7 @@ export class JobController {
       const mappedSalary = salary || salario;
       const mappedType = type || tipo;
       const mappedLocation = location || localizacao;
-      const mappedBusinessId = businessId || empresa;
+      const mappedBusinessId = businessId || empresaId || empresa;
       const mappedExpiresAt = expiresAt || dataExpiracao;
       const mappedTags = tags || categorias;
 
@@ -137,12 +140,33 @@ export class JobController {
         description: mappedDescription,
         businessId: mappedBusinessId,
         type: mappedType,
-        location: mappedLocation,
+        location: mappedLocation
       });
 
-      // Garantir que businessId seja tratado como string
-      const processedBusinessId = mappedBusinessId?.toString();
-      console.log('[JOB] ID da empresa processado:', processedBusinessId);
+      // Garantir que businessId seja tratado como número
+      let numericBusinessId: number | null = null;
+      
+      if (mappedBusinessId) {
+        // Tentar converter para número
+        const parsedId = Number(mappedBusinessId);
+        
+        // Verificar se é um número válido
+        if (!isNaN(parsedId)) {
+          numericBusinessId = parsedId;
+          console.log('[JOB] ID da empresa convertido para número:', numericBusinessId);
+        } else {
+          console.log('[JOB] Erro: ID da empresa não é um número válido:', mappedBusinessId);
+          return res.status(400).json({ 
+            error: 'O ID da empresa deve ser um número. Recebido: ' + mappedBusinessId 
+          });
+        }
+      }
+      
+      // Verificar se temos um ID de empresa válido
+      if (!numericBusinessId) {
+        console.log('[JOB] Erro: ID da empresa não fornecido ou inválido');
+        return res.status(400).json({ error: 'O ID da empresa é obrigatório e deve ser um número' });
+      }
 
       // Validar campos obrigatórios
       if (!mappedTitle) {
@@ -165,11 +189,6 @@ export class JobController {
         return res.status(400).json({ error: 'A localização da vaga é obrigatória' });
       }
 
-      if (!processedBusinessId) {
-        console.log('[JOB] Erro: ID da empresa não fornecido');
-        return res.status(400).json({ error: 'O ID da empresa é obrigatório' });
-      }
-
       console.log('[JOB] Todos os campos validados, criando vaga...');
       const job = await this.jobService.create({
         title: mappedTitle,
@@ -179,7 +198,7 @@ export class JobController {
         salary: mappedSalary,
         type: mappedType,
         location: mappedLocation,
-        businessId: processedBusinessId,
+        businessId: numericBusinessId.toString(),
         expiresAt: mappedExpiresAt,
         tags: mappedTags,
         userId: effectiveUserId
