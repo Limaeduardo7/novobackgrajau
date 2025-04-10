@@ -39,7 +39,7 @@ export class JobRepository {
       }
       
       if (businessId) {
-        query = query.eq('businessId', businessId);
+        query = query.eq('business_id', businessId);
       }
       
       if (location) {
@@ -151,6 +151,7 @@ export class JobRepository {
    */
   async create(data: JobCreateParams): Promise<Job> {
     try {
+      // Preparando dados conforme o tipo do Prisma/Supabase (nomes em snake_case para o banco)
       const jobData: Omit<JobInsert, "createdAt" | "updatedAt" | "expiresAt"> & {
         created_at?: string;
         updated_at?: string;
@@ -163,7 +164,7 @@ export class JobRepository {
         salary: data.salary,
         type: data.type,
         location: data.location,
-        businessId: data.businessId,
+        business_id: data.businessId, // Usando snake_case para o banco
         expires_at: data.expiresAt || null,
         tags: data.tags || [],
         status: JobStatus.PENDING, // Todas as vagas começam como pendentes
@@ -244,9 +245,21 @@ export class JobRepository {
         updated_at: new Date().toISOString()
       };
       
+      // Convertendo as chaves em camelCase para snake_case quando necessário
+      const dbColumnMap: Record<string, string> = {
+        'businessId': 'business_id'
+      };
+      
+      // Criando objeto para enviar ao Supabase
+      const dbData: Record<string, any> = {};
+      for (const key in jobData) {
+        const dbKey = dbColumnMap[key] || key;
+        dbData[dbKey] = (jobData as any)[key];
+      }
+      
       const { data: updatedJob, error } = await supabase
         .from('jobs')
-        .update(jobData)
+        .update(dbData)
         .eq('id', id)
         .select('*')
         .single();
@@ -532,7 +545,7 @@ export class JobRepository {
       let query = supabase
         .from('jobs')
         .select('*', { count: 'exact' })
-        .eq('businessId', businessId);
+        .eq('business_id', businessId);
       
       if (status) {
         query = query.eq('status', status);
@@ -576,7 +589,7 @@ export class JobRepository {
       location: data.location,
       status: data.status as JobStatus,
       featured: data.featured,
-      businessId: data.businessId,
+      businessId: data.business_id || data.businessId, // Mapeamento de business_id para businessId
       business: undefined, // Será preenchido separadamente, se necessário
       createdAt: new Date(data.created_at || data.createdAt),
       updatedAt: new Date(data.updated_at || data.updatedAt),

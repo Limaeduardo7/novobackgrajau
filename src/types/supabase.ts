@@ -308,7 +308,7 @@ export interface Database {
           location: string
           status: string
           featured: boolean
-          businessId: string
+          business_id: string
           createdAt: string
           updatedAt: string
           expiresAt: string | null
@@ -327,7 +327,7 @@ export interface Database {
           location: string
           status?: string
           featured?: boolean
-          businessId: string
+          business_id: string
           createdAt?: string
           updatedAt?: string
           expiresAt?: string | null
@@ -346,7 +346,7 @@ export interface Database {
           location?: string
           status?: string
           featured?: boolean
-          businessId?: string
+          business_id?: string
           createdAt?: string
           updatedAt?: string
           expiresAt?: string | null
@@ -357,7 +357,7 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "jobs_businessId_fkey"
-            columns: ["businessId"]
+            columns: ["business_id"]
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           }
