@@ -78,8 +78,11 @@ export class JobController {
    */
   async create(req: Request, res: Response): Promise<Response> {
     try {
+      console.log('[JOB] Dados recebidos na requisição:', JSON.stringify(req.body));
+      
       // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      console.log('[JOB] ID do usuário autenticado:', userId);
       
       // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
       if (!userId && process.env.NODE_ENV !== 'development') {
@@ -88,6 +91,7 @@ export class JobController {
       
       // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
       const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+      console.log('[JOB] ID do usuário efetivo:', effectiveUserId);
       
       const {
         title,
@@ -102,27 +106,37 @@ export class JobController {
         tags
       } = req.body;
 
+      // Garantir que businessId seja tratado como string
+      const processedBusinessId = businessId?.toString();
+      console.log('[JOB] ID da empresa processado:', processedBusinessId);
+
       // Validar campos obrigatórios
       if (!title) {
+        console.log('[JOB] Erro: título não fornecido');
         return res.status(400).json({ error: 'O título da vaga é obrigatório' });
       }
 
       if (!description) {
+        console.log('[JOB] Erro: descrição não fornecida');
         return res.status(400).json({ error: 'A descrição da vaga é obrigatória' });
       }
 
       if (!type) {
+        console.log('[JOB] Erro: tipo não fornecido');
         return res.status(400).json({ error: 'O tipo da vaga é obrigatório' });
       }
 
       if (!location) {
+        console.log('[JOB] Erro: localização não fornecida');
         return res.status(400).json({ error: 'A localização da vaga é obrigatória' });
       }
 
-      if (!businessId) {
+      if (!processedBusinessId) {
+        console.log('[JOB] Erro: ID da empresa não fornecido');
         return res.status(400).json({ error: 'O ID da empresa é obrigatório' });
       }
 
+      console.log('[JOB] Todos os campos validados, criando vaga...');
       const job = await this.jobService.create({
         title,
         description,
@@ -131,18 +145,20 @@ export class JobController {
         salary,
         type,
         location,
-        businessId,
+        businessId: processedBusinessId,
         expiresAt,
         tags,
         userId: effectiveUserId
       });
 
+      console.log('[JOB] Vaga criada com sucesso:', job.id);
       return res.status(201).json(job);
     } catch (error) {
       if (error instanceof AppError) {
+        console.error('[JOB] AppError:', error.message, 'Status:', error.statusCode);
         return res.status(error.statusCode).json({ error: error.message });
       }
-      console.error('Erro ao criar vaga:', error);
+      console.error('[JOB] Erro ao criar vaga:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
