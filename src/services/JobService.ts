@@ -39,12 +39,17 @@ export class JobService {
     // Verificar se a empresa existe
     const business = await this.businessRepository.getById(data.businessId);
     
+    // Em ambiente de desenvolvimento, permitir criar vagas mesmo sem empresa
     if (!business) {
-      throw new AppError(404, 'Empresa não encontrada');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[JOB] Aviso: Empresa com ID ${data.businessId} não encontrada, mas permitindo criação em ambiente de desenvolvimento`);
+      } else {
+        throw new AppError(404, 'Empresa não encontrada');
+      }
     }
     
-    // Verificar se o usuário é dono da empresa ou é admin
-    if (business.userId !== data.userId && !await this.isUserAdmin(data.userId)) {
+    // Verificar se o usuário é dono da empresa ou é admin (apenas se a empresa existir)
+    if (business && business.userId !== data.userId && !await this.isUserAdmin(data.userId)) {
       throw new AppError(403, 'Você não tem permissão para criar vagas para esta empresa');
     }
     
@@ -64,11 +69,17 @@ export class JobService {
     // Verificar se o usuário é dono da empresa ou é admin
     const business = await this.businessRepository.getById(job.businessId);
     
+    // Em ambiente de desenvolvimento, permitir atualizar vagas mesmo sem empresa
     if (!business) {
-      throw new AppError(404, 'Empresa não encontrada');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[JOB] Aviso: Empresa com ID ${job.businessId} não encontrada, mas permitindo atualização em ambiente de desenvolvimento`);
+      } else {
+        throw new AppError(404, 'Empresa não encontrada');
+      }
     }
     
-    if (business.userId !== data.userId && !await this.isUserAdmin(data.userId)) {
+    // Verificar permissões apenas se a empresa existir
+    if (business && business.userId !== data.userId && !await this.isUserAdmin(data.userId)) {
       throw new AppError(403, 'Você não tem permissão para atualizar esta vaga');
     }
     
@@ -88,11 +99,17 @@ export class JobService {
     // Verificar se o usuário é dono da empresa ou é admin
     const business = await this.businessRepository.getById(job.businessId);
     
+    // Em ambiente de desenvolvimento, permitir excluir vagas mesmo sem empresa
     if (!business) {
-      throw new AppError(404, 'Empresa não encontrada');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[JOB] Aviso: Empresa com ID ${job.businessId} não encontrada, mas permitindo exclusão em ambiente de desenvolvimento`);
+      } else {
+        throw new AppError(404, 'Empresa não encontrada');
+      }
     }
     
-    if (business.userId !== userId && !await this.isUserAdmin(userId)) {
+    // Verificar permissões apenas se a empresa existir
+    if (business && business.userId !== userId && !await this.isUserAdmin(userId)) {
       throw new AppError(403, 'Você não tem permissão para excluir esta vaga');
     }
     
@@ -181,8 +198,13 @@ export class JobService {
   ): Promise<PaginatedResponse<Job>> {
     const business = await this.businessRepository.getById(businessId);
     
+    // Em ambiente de desenvolvimento, permitir buscar vagas mesmo sem empresa
     if (!business) {
-      throw new AppError(404, 'Empresa não encontrada');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[JOB] Aviso: Empresa com ID ${businessId} não encontrada, mas permitindo busca em ambiente de desenvolvimento`);
+      } else {
+        throw new AppError(404, 'Empresa não encontrada');
+      }
     }
     
     return this.jobRepository.getByBusiness(businessId, params);
