@@ -151,6 +151,20 @@ export class JobRepository {
    */
   async create(data: JobCreateParams): Promise<Job> {
     try {
+      // Em ambiente de desenvolvimento, vamos gerar um UUID válido quando o businessId não for um UUID
+      let validBusinessId = data.businessId;
+      
+      if (process.env.NODE_ENV === 'development') {
+        // Verifica se o ID fornecido é um UUID válido
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(validBusinessId)) {
+          // Se não for, gera um UUID v4 aleatório
+          const crypto = require('crypto');
+          validBusinessId = crypto.randomUUID();
+          console.log(`[JOB] Convertendo businessId '${data.businessId}' para UUID válido: ${validBusinessId}`);
+        }
+      }
+      
       // Preparando dados conforme o tipo do Prisma/Supabase (nomes em snake_case para o banco)
       const jobData: Omit<JobInsert, "createdAt" | "updatedAt" | "expiresAt"> & {
         created_at?: string;
@@ -164,7 +178,7 @@ export class JobRepository {
         salary: data.salary,
         type: data.type,
         location: data.location,
-        business_id: data.businessId, // Usando snake_case para o banco
+        business_id: validBusinessId, // Agora usando o UUID válido
         expires_at: data.expiresAt || null,
         tags: data.tags || [],
         status: JobStatus.PENDING, // Todas as vagas começam como pendentes
