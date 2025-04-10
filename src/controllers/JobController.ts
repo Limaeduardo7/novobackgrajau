@@ -93,7 +93,9 @@ export class JobController {
       const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
       console.log('[JOB] ID do usuário efetivo:', effectiveUserId);
       
+      // Mapear campos em português para os nomes esperados em inglês
       const {
+        // Campos em inglês (formato original)
         title,
         description,
         requirements,
@@ -103,30 +105,62 @@ export class JobController {
         location,
         businessId,
         expiresAt,
-        tags
+        tags,
+        
+        // Campos em português (formato alternativo)
+        titulo,
+        descricao,
+        requisitos,
+        beneficios,
+        salario,
+        tipo,
+        localizacao,
+        empresa,
+        dataExpiracao,
+        categorias
       } = req.body;
 
+      // Mapeamento de campos para o formato esperado
+      const mappedTitle = title || titulo;
+      const mappedDescription = description || descricao;
+      const mappedRequirements = requirements || (requisitos ? [requisitos] : undefined);
+      const mappedBenefits = benefits || (beneficios ? [beneficios] : undefined);
+      const mappedSalary = salary || salario;
+      const mappedType = type || tipo;
+      const mappedLocation = location || localizacao;
+      const mappedBusinessId = businessId || empresa;
+      const mappedExpiresAt = expiresAt || dataExpiracao;
+      const mappedTags = tags || categorias;
+
+      console.log('[JOB] Dados mapeados:', {
+        title: mappedTitle,
+        description: mappedDescription,
+        businessId: mappedBusinessId,
+        type: mappedType,
+        location: mappedLocation,
+      });
+
       // Garantir que businessId seja tratado como string
-      const processedBusinessId = businessId?.toString();
+      const processedBusinessId = mappedBusinessId?.toString();
       console.log('[JOB] ID da empresa processado:', processedBusinessId);
 
       // Validar campos obrigatórios
-      if (!title) {
+      if (!mappedTitle) {
         console.log('[JOB] Erro: título não fornecido');
         return res.status(400).json({ error: 'O título da vaga é obrigatório' });
       }
 
-      if (!description) {
+      if (!mappedDescription) {
         console.log('[JOB] Erro: descrição não fornecida');
         return res.status(400).json({ error: 'A descrição da vaga é obrigatória' });
       }
 
-      if (!type) {
+      if (!mappedType) {
         console.log('[JOB] Erro: tipo não fornecido');
         return res.status(400).json({ error: 'O tipo da vaga é obrigatório' });
       }
 
-      if (!location) {
+      if (!mappedLocation) {
         console.log('[JOB] Erro: localização não fornecida');
         return res.status(400).json({ error: 'A localização da vaga é obrigatória' });
       }
@@ -138,16 +172,16 @@ export class JobController {
 
       console.log('[JOB] Todos os campos validados, criando vaga...');
       const job = await this.jobService.create({
-        title,
-        description,
-        requirements,
-        benefits,
-        salary,
-        type,
-        location,
+        title: mappedTitle,
+        description: mappedDescription,
+        requirements: mappedRequirements,
+        benefits: mappedBenefits,
+        salary: mappedSalary,
+        type: mappedType,
+        location: mappedLocation,
         businessId: processedBusinessId,
-        expiresAt,
-        tags,
+        expiresAt: mappedExpiresAt,
+        tags: mappedTags,
         userId: effectiveUserId
       });
 
