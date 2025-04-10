@@ -102,6 +102,27 @@ export class JobController {
         tags
       } = req.body;
 
+      // Validar campos obrigatórios
+      if (!title) {
+        return res.status(400).json({ error: 'O título da vaga é obrigatório' });
+      }
+
+      if (!description) {
+        return res.status(400).json({ error: 'A descrição da vaga é obrigatória' });
+      }
+
+      if (!type) {
+        return res.status(400).json({ error: 'O tipo da vaga é obrigatório' });
+      }
+
+      if (!location) {
+        return res.status(400).json({ error: 'A localização da vaga é obrigatória' });
+      }
+
+      if (!businessId) {
+        return res.status(400).json({ error: 'O ID da empresa é obrigatório' });
+      }
+
       const job = await this.jobService.create({
         title,
         description,
