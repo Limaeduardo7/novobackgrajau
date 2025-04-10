@@ -143,29 +143,10 @@ export class JobController {
         location: mappedLocation
       });
 
-      // Garantir que businessId seja tratado como número
-      let numericBusinessId: number | null = null;
-      
-      if (mappedBusinessId) {
-        // Tentar converter para número
-        const parsedId = Number(mappedBusinessId);
-        
-        // Verificar se é um número válido
-        if (!isNaN(parsedId)) {
-          numericBusinessId = parsedId;
-          console.log('[JOB] ID da empresa convertido para número:', numericBusinessId);
-        } else {
-          console.log('[JOB] Erro: ID da empresa não é um número válido:', mappedBusinessId);
-          return res.status(400).json({ 
-            error: 'O ID da empresa deve ser um número. Recebido: ' + mappedBusinessId 
-          });
-        }
-      }
-      
-      // Verificar se temos um ID de empresa válido
-      if (!numericBusinessId) {
-        console.log('[JOB] Erro: ID da empresa não fornecido ou inválido');
-        return res.status(400).json({ error: 'O ID da empresa é obrigatório e deve ser um número' });
+      // Verificar se temos um ID ou nome de empresa
+      if (!mappedBusinessId) {
+        console.log('[JOB] Erro: ID ou nome da empresa não fornecido');
+        return res.status(400).json({ error: 'O ID ou nome da empresa é obrigatório' });
       }
 
       // Validar campos obrigatórios
@@ -198,7 +179,7 @@ export class JobController {
         salary: mappedSalary,
         type: mappedType,
         location: mappedLocation,
-        businessId: numericBusinessId.toString(),
+        businessId: mappedBusinessId.toString(),
         expiresAt: mappedExpiresAt,
         tags: mappedTags,
         userId: effectiveUserId
@@ -412,7 +393,6 @@ export class JobController {
       console.error('Erro ao incrementar aplicações:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
-  }
 
   /**
    * Obtém vagas por empresa
