@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { JobController } from '../controllers/JobController';
 import { requireAuth, checkPermission } from '../middlewares/auth';
+import { multiAuth, checkPermission as multiAuthCheckPermission } from '../middlewares/multiAuthMiddleware';
 
 const router = Router();
 const adminRouter = Router();
@@ -25,7 +26,7 @@ router.post('/:id/apply', jobController.incrementApplications.bind(jobController
 
 // Rotas autenticadas
 router.post('/', requireAuth, checkPermission('create:vagas'), jobController.create.bind(jobController));
-router.put('/:id', requireAuth, checkPermission('update:vagas'), jobController.update.bind(jobController));
+router.put('/:id', multiAuth, multiAuthCheckPermission('update:vagas'), jobController.update.bind(jobController));
 router.delete('/:id', requireAuth, checkPermission('delete:vagas'), jobController.delete.bind(jobController));
 
 // Rotas administrativas
@@ -37,8 +38,8 @@ adminRouter.get('/pending', requireAuth, checkPermission('admin'), (req, res, ne
   return jobController.list(req, res);
 });
 adminRouter.get('/:id', requireAuth, checkPermission('admin'), jobController.getById.bind(jobController));
-adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), jobController.updateStatus.bind(jobController));
-adminRouter.put('/:id/featured', requireAuth, checkPermission('admin'), jobController.toggleFeatured.bind(jobController));
+adminRouter.put('/:id/status', multiAuth, multiAuthCheckPermission('admin'), jobController.updateStatus.bind(jobController));
+adminRouter.put('/:id/featured', multiAuth, multiAuthCheckPermission('admin'), jobController.toggleFeatured.bind(jobController));
 
 export const jobRoutes = router;
 export const jobAdminRoutes = adminRouter; 

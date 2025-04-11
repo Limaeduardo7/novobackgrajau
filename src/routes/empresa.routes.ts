@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { EmpresaController } from '../controllers/empresa.controller';
 import { requireAuth, checkPermission } from '../middlewares/auth';
+import { multiAuth, checkPermission as multiAuthCheckPermission } from '../middlewares/multiAuthMiddleware';
 
 const router = Router();
 const adminRouter = Router();
@@ -16,7 +17,7 @@ router.get('/:id', empresaController.getEmpresaById);
 
 // Rotas que requerem autenticação
 router.post('/', requireAuth, checkPermission('create:empresas'), empresaController.createEmpresa);
-router.put('/:id', requireAuth, checkPermission('update:empresas'), empresaController.updateEmpresa);
+router.put('/:id', multiAuth, multiAuthCheckPermission('update:empresas'), empresaController.updateEmpresa);
 router.delete('/:id', requireAuth, checkPermission('delete:empresas'), empresaController.deleteEmpresa);
 
 // Rota para criar dados de exemplo (apenas em desenvolvimento)
@@ -32,8 +33,8 @@ adminRouter.get('/', requireAuth, checkPermission('admin'), empresaController.ge
 adminRouter.get('/pending', requireAuth, checkPermission('admin'), empresaController.getPendingEmpresas);
 adminRouter.get('/:id', requireAuth, checkPermission('admin'), empresaController.getEmpresaById);
 adminRouter.post('/', requireAuth, checkPermission('admin'), empresaController.createEmpresa);
-adminRouter.put('/:id', requireAuth, checkPermission('admin'), empresaController.updateEmpresa);
-adminRouter.put('/:id/status', requireAuth, checkPermission('admin'), empresaController.updateEmpresaStatus);
+adminRouter.put('/:id', multiAuth, multiAuthCheckPermission('admin'), empresaController.updateEmpresa);
+adminRouter.put('/:id/status', multiAuth, multiAuthCheckPermission('admin'), empresaController.updateEmpresaStatus);
 adminRouter.delete('/:id', requireAuth, checkPermission('admin'), empresaController.deleteEmpresa);
 
 export const empresaRoutes = router;
