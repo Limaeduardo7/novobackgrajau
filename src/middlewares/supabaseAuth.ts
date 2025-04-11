@@ -21,8 +21,41 @@ declare global {
  */
 export const supabaseAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log('[SUPABASE_AUTH] Verificando autenticação...');
+    console.log('[SUPABASE_AUTH] Headers:', req.headers);
+    
     // Extrair token do header Authorization
     const token = req.headers.authorization?.split(' ')[1];
+    
+    // Log para debug
+    console.log('[SUPABASE_AUTH] Token extraído:', token ? `${token.substring(0, 15)}...` : 'Nenhum');
+    
+    // Em ambiente de desenvolvimento, podemos permitir acesso sem token para facilitar testes
+    if (process.env.NODE_ENV === 'development' && process.env.BYPASS_AUTH === 'true') {
+      console.log('[SUPABASE_AUTH] ⚠️ Bypass de autenticação ativo em desenvolvimento');
+      
+      // Adicionar um usuário fictício para desenvolvimento
+      req.user = {
+        id: '00000000-0000-0000-0000-000000000000',
+        email: 'dev@example.com',
+        role: 'ADMIN' // Para testes, definimos como admin
+      };
+      
+      return next();
+    }
+    
+    // Verificar se é o token admin
+    if (token === process.env.ADMIN_TOKEN) {
+      console.log('[SUPABASE_AUTH] Token admin validado com sucesso');
+      
+      req.user = {
+        id: 'admin',
+        email: 'admin@anunciargrajaueregiao.com',
+        role: 'ADMIN'
+      };
+      
+      return next();
+    }
     
     if (!token) {
       return res.status(401).json({ message: 'Token não fornecido' });
@@ -32,6 +65,7 @@ export const supabaseAuth = async (req: Request, res: Response, next: NextFuncti
     const { data, error } = await supabase.auth.getUser(token);
     
     if (error || !data.user) {
+      console.error('[SUPABASE_AUTH] Erro na verificação do token:', error);
       return res.status(401).json({ message: 'Token inválido ou expirado' });
     }
     
@@ -42,6 +76,7 @@ export const supabaseAuth = async (req: Request, res: Response, next: NextFuncti
       role: data.user.app_metadata?.role || 'USER'
     };
     
+    console.log('[SUPABASE_AUTH] Usuário autenticado:', req.user);
     next();
   } catch (error: any) {
     console.error('Erro no middleware de autenticação Supabase:', error);
