@@ -64,12 +64,13 @@ export class EmpresaSupabaseService {
       }
       
       // Filtrar por status
-      if (status) {
+      if (status && status !== 'all') {
         query = query.eq('status', status);
-      } else {
-        // Por padrão, mostrar apenas empresas aprovadas em consultas públicas
+      } else if (!status && process.env.NODE_ENV !== 'development') {
+        // Em produção, por padrão mostrar apenas empresas aprovadas
         query = query.eq('status', 'aprovado');
       }
+      // Em desenvolvimento ou com status='all', não filtra por status
       
       console.log('SQL gerado (aproximado):', `SELECT * FROM empresas WHERE ... ORDER BY ${sortBy} ${order} LIMIT ${limit} OFFSET ${from}`);
       
@@ -94,6 +95,22 @@ export class EmpresaSupabaseService {
           console.error('Erro ao verificar total de registros:', countError);
         } else {
           console.log(`Total de registros na tabela: ${totalCount || 0}`);
+          
+          if (totalCount && totalCount > 0) {
+            // Se existem registros mas nada foi retornado com os filtros atuais,
+            // faça uma consulta sem filtros para diagnosticar
+            console.log('Tentando consulta sem filtros para diagnóstico...');
+            const { data: allData, error: allError } = await supabase
+              .from('empresas')
+              .select('id, name, status')
+              .limit(5);
+              
+            if (allError) {
+              console.error('Erro na consulta de diagnóstico:', allError);
+            } else {
+              console.log('Amostra de registros existentes:', allData);
+            }
+          }
         }
       }
       
