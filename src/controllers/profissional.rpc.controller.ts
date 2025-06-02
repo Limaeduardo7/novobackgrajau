@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import profissionalRepository from '../repositories/ProfissionalRepository';
 import { AppError } from '../utils/AppError';
+import { supabase } from '../lib/supabase';
 
 export class ProfissionalRpcController {
   /**
@@ -340,6 +341,62 @@ export class ProfissionalRpcController {
       return res.status(500).json({ 
         message: 'Erro ao excluir perfil profissional',
         error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Método de teste para debug do erro 500
+   */
+  async testUpdate(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      console.log('[TEST_UPDATE] =================================');
+      console.log('[TEST_UPDATE] ID recebido:', id);
+      console.log('[TEST_UPDATE] Body recebido:', JSON.stringify(req.body, null, 2));
+      console.log('[TEST_UPDATE] Headers:', JSON.stringify(req.headers, null, 2));
+      console.log('[TEST_UPDATE] User:', JSON.stringify(req.user, null, 2));
+      console.log('[TEST_UPDATE] Auth:', JSON.stringify((req as any).auth, null, 2));
+      
+      // Verificar se conseguimos buscar o perfil pelo ID diretamente
+      const { data: profile, error } = await supabase
+        .from('profissionais')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      console.log('[TEST_UPDATE] Perfil encontrado:', !!profile);
+      console.log('[TEST_UPDATE] Erro na busca:', error);
+      
+      if (profile) {
+        console.log('[TEST_UPDATE] Dados do perfil:', JSON.stringify(profile, null, 2));
+        
+        // Tentar uma atualização simples
+        const { data: updated, error: updateError } = await supabase
+          .from('profissionais')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select()
+          .single();
+        
+        console.log('[TEST_UPDATE] Atualização bem-sucedida:', !!updated);
+        console.log('[TEST_UPDATE] Erro na atualização:', updateError);
+      }
+      
+      return res.json({
+        status: 'OK',
+        profileFound: !!profile,
+        profileData: profile,
+        error: error,
+        message: 'Teste concluído - verifique os logs do servidor'
+      });
+      
+    } catch (error: any) {
+      console.error('[TEST_UPDATE] Erro no teste:', error);
+      return res.status(500).json({
+        error: 'Erro no teste',
+        message: error.message,
+        stack: error.stack
       });
     }
   }

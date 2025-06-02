@@ -33,6 +33,13 @@ router.post('/', multiAuth, profissionalRpcController.createProfile);
 router.put('/:id', multiAuth, profissionalRpcController.updateProfile);
 
 /**
+ * @route   PUT /api/profissionais/:id/test
+ * @desc    Teste de debug para atualização de perfil
+ * @access  Private
+ */
+router.put('/:id/test', multiAuth, profissionalRpcController.testUpdate);
+
+/**
  * @route   DELETE /api/profissionais/:id
  * @desc    Excluir perfil profissional
  * @access  Private (próprio usuário ou admin)
