@@ -78,66 +78,24 @@ export class JobController {
    */
   async create(req: Request, res: Response): Promise<Response> {
     try {
-      // Usar req.auth em vez de req.user para obter o ID do usuário
+      console.log('[JOB] Dados recebidos na requisição:', JSON.stringify(req.body));
+      
+      // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
+      console.log('[JOB] ID do usuário autenticado:', userId);
       
-      // Em ambiente de desenvolvimento, sempre permitir criar vagas
-      if (!userId && process.env.NODE_ENV === 'development') {
-        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento');
-        const devUserId = '00000000-0000-0000-0000-000000000000';
-        
-        const {
-          title,
-          description,
-          requirements,
-          benefits,
-          salary,
-          type,
-          location,
-          businessId,
-          expiresAt,
-          tags
-        } = req.body;
-
-        console.log('[JOB] Dados recebidos:', req.body);
-
-        const job = await this.jobService.create({
-          title,
-          description,
-          requirements,
-          benefits,
-          salary,
-          type,
-          location,
-          businessId,
-          expiresAt,
-          tags,
-          userId: devUserId
-        });
-
-        return res.status(201).json(job);
-      }
-      
-      if (!userId) {
+      // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
+      if (!userId && process.env.NODE_ENV !== 'development') {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
+      // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
+      const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+      console.log('[JOB] ID do usuário efetivo:', effectiveUserId);
+      
+      // Mapear campos em português para os nomes esperados em inglês
       const {
-        title,
-        description,
-        requirements,
-        benefits,
-        salary,
-        type,
-        location,
-        businessId,
-        expiresAt,
-        tags
-      } = req.body;
-
-      console.log('[JOB] Dados recebidos:', req.body);
-
-      const job = await this.jobService.create({
+        // Campos em inglês (formato original)
         title,
         description,
         requirements,
@@ -148,15 +106,93 @@ export class JobController {
         businessId,
         expiresAt,
         tags,
-        userId
+        
+        // Campos em português (formato alternativo)
+        titulo,
+        descricao,
+        requisitos,
+        beneficios,
+        salario,
+        tipo,
+        localizacao,
+        empresa,
+        dataExpiracao,
+        categorias,
+        
+        // Campo específico para ID da empresa (suporte adicional)
+        empresaId
+      } = req.body;
+
+      // Mapeamento de campos para o formato esperado
+      const mappedTitle = title || titulo;
+      const mappedDescription = description || descricao;
+      const mappedRequirements = requirements || (requisitos ? [requisitos] : undefined);
+      const mappedBenefits = benefits || (beneficios ? [beneficios] : undefined);
+      const mappedSalary = salary || salario;
+      const mappedType = type || tipo;
+      const mappedLocation = location || localizacao;
+      const mappedBusinessId = businessId || empresaId || empresa;
+      const mappedExpiresAt = expiresAt || dataExpiracao;
+      const mappedTags = tags || categorias;
+
+      console.log('[JOB] Dados mapeados:', {
+        title: mappedTitle,
+        description: mappedDescription,
+        businessId: mappedBusinessId,
+        type: mappedType,
+        location: mappedLocation
       });
 
+      // Verificar se temos um ID ou nome de empresa
+      if (!mappedBusinessId) {
+        console.log('[JOB] Erro: ID ou nome da empresa não fornecido');
+        return res.status(400).json({ error: 'O ID ou nome da empresa é obrigatório' });
+      }
+
+      // Validar campos obrigatórios
+      if (!mappedTitle) {
+        console.log('[JOB] Erro: título não fornecido');
+        return res.status(400).json({ error: 'O título da vaga é obrigatório' });
+      }
+
+      if (!mappedDescription) {
+        console.log('[JOB] Erro: descrição não fornecida');
+        return res.status(400).json({ error: 'A descrição da vaga é obrigatória' });
+      }
+
+      if (!mappedType) {
+        console.log('[JOB] Erro: tipo não fornecido');
+        return res.status(400).json({ error: 'O tipo da vaga é obrigatório' });
+      }
+
+      if (!mappedLocation) {
+        console.log('[JOB] Erro: localização não fornecida');
+        return res.status(400).json({ error: 'A localização da vaga é obrigatória' });
+      }
+
+      console.log('[JOB] Todos os campos validados, criando vaga...');
+      const job = await this.jobService.create({
+        title: mappedTitle,
+        description: mappedDescription,
+        requirements: mappedRequirements,
+        benefits: mappedBenefits,
+        salary: mappedSalary,
+        type: mappedType,
+        location: mappedLocation,
+        businessId: mappedBusinessId.toString(),
+        expiresAt: mappedExpiresAt,
+        tags: mappedTags,
+        userId: effectiveUserId
+      });
+
+      console.log('[JOB] Vaga criada com sucesso:', job.id);
       return res.status(201).json(job);
     } catch (error) {
       if (error instanceof AppError) {
+        console.error('[JOB] AppError:', error.message, 'Status:', error.statusCode);
         return res.status(error.statusCode).json({ error: error.message });
       }
-      console.error('Erro ao criar vaga:', error);
+      console.error('[JOB] Erro ao criar vaga:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }
@@ -167,47 +203,16 @@ export class JobController {
   async update(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      // Usar req.auth em vez de req.user
+      // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
       
-      // Em ambiente de desenvolvimento, sempre permitir atualizar vagas
-      if (!userId && process.env.NODE_ENV === 'development') {
-        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para atualização');
-        const devUserId = '00000000-0000-0000-0000-000000000000';
-        
-        const {
-          title,
-          description,
-          requirements,
-          benefits,
-          salary,
-          type,
-          location,
-          expiresAt,
-          tags
-        } = req.body;
-
-        console.log('[JOB] Dados de atualização recebidos:', req.body);
-
-        const job = await this.jobService.update(id, {
-          title,
-          description,
-          requirements,
-          benefits,
-          salary,
-          type,
-          location,
-          expiresAt,
-          tags,
-          userId: devUserId
-        });
-
-        return res.json(job);
-      }
-      
-      if (!userId) {
+      // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
+      if (!userId && process.env.NODE_ENV !== 'development') {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
+      
+      // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
+      const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
       
       const {
         title,
@@ -220,8 +225,6 @@ export class JobController {
         expiresAt,
         tags
       } = req.body;
-
-      console.log('[JOB] Dados de atualização recebidos:', req.body);
 
       const job = await this.jobService.update(id, {
         title,
@@ -233,7 +236,7 @@ export class JobController {
         location,
         expiresAt,
         tags,
-        userId
+        userId: effectiveUserId
       });
 
       return res.json(job);
@@ -252,24 +255,18 @@ export class JobController {
   async delete(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      // Usar req.auth em vez de req.user
+      // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
       
-      // Em ambiente de desenvolvimento, sempre permitir excluir vagas
-      if (!userId && process.env.NODE_ENV === 'development') {
-        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para exclusão');
-        const devUserId = '00000000-0000-0000-0000-000000000000';
-        
-        await this.jobService.delete(id, devUserId);
-        
-        return res.status(204).send();
-      }
-      
-      if (!userId) {
+      // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
+      if (!userId && process.env.NODE_ENV !== 'development') {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
-      await this.jobService.delete(id, userId);
+      // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
+      const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+      
+      await this.jobService.delete(id, effectiveUserId);
       
       return res.status(204).send();
     } catch (error) {
@@ -288,24 +285,18 @@ export class JobController {
     try {
       const { id } = req.params;
       const { status } = req.body;
-      // Usar req.auth em vez de req.user
+      // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
       
-      // Em ambiente de desenvolvimento, sempre permitir atualizar status
-      if (!userId && process.env.NODE_ENV === 'development') {
-        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para atualizar status');
-        const devUserId = '00000000-0000-0000-0000-000000000000';
-        
-        const job = await this.jobService.updateStatus(id, status, devUserId);
-        
-        return res.json(job);
-      }
-      
-      if (!userId) {
+      // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
+      if (!userId && process.env.NODE_ENV !== 'development') {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
-      const job = await this.jobService.updateStatus(id, status, userId);
+      // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
+      const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+      
+      const job = await this.jobService.updateStatus(id, status, effectiveUserId);
       
       return res.json(job);
     } catch (error) {
@@ -324,24 +315,18 @@ export class JobController {
     try {
       const { id } = req.params;
       const { featured } = req.body;
-      // Usar req.auth em vez de req.user
+      // Buscar o ID do usuário do objeto auth que foi configurado pelo middleware
       const userId = (req as any).auth?.userId || (req as any).auth?.session?.user?.id;
       
-      // Em ambiente de desenvolvimento, sempre permitir atualizar destaque
-      if (!userId && process.env.NODE_ENV === 'development') {
-        console.log('[JOB] Usando ID de usuário fictício em ambiente de desenvolvimento para alterar destaque');
-        const devUserId = '00000000-0000-0000-0000-000000000000';
-        
-        const job = await this.jobService.toggleFeatured(id, featured, devUserId);
-        
-        return res.json(job);
-      }
-      
-      if (!userId) {
+      // Em ambiente de desenvolvimento, podemos permitir mesmo sem usuário
+      if (!userId && process.env.NODE_ENV !== 'development') {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
       
-      const job = await this.jobService.toggleFeatured(id, featured, userId);
+      // No ambiente de desenvolvimento, usamos um ID padrão se não estiver presente
+      const effectiveUserId = userId || '00000000-0000-0000-0000-000000000000';
+      
+      const job = await this.jobService.toggleFeatured(id, featured, effectiveUserId);
       
       return res.json(job);
     } catch (error) {
@@ -370,6 +355,7 @@ export class JobController {
       console.error('Erro ao obter vagas em destaque:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
+  }
 
   /**
    * Incrementa visualizações de uma vaga
@@ -413,12 +399,15 @@ export class JobController {
   async getByBusiness(req: Request, res: Response): Promise<Response> {
     try {
       const { businessId } = req.params;
-      const { page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, status } = req.query;
       
       const jobs = await this.jobService.getByBusiness(
         businessId,
-        Number(page),
-        Number(limit)
+        {
+          page: Number(page),
+          limit: Number(limit),
+          status: status as string
+        }
       );
       
       return res.json(jobs);
@@ -426,7 +415,7 @@ export class JobController {
       if (error instanceof AppError) {
         return res.status(error.statusCode).json({ error: error.message });
       }
-      console.error('Erro ao obter vagas por empresa:', error);
+      console.error('Erro ao obter vagas da empresa:', error);
       return res.status(500).json({ error: 'Erro interno do servidor' });
     }
   }

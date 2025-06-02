@@ -147,24 +147,50 @@ export class ProfissionalRpcController {
   async updateProfile(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      console.log('[RPC_UPDATE] =================================');
       console.log('[RPC_UPDATE] Iniciando atualização do perfil:', id);
-      console.log('[RPC_UPDATE] Dados do usuário:', req.user);
+      console.log('[RPC_UPDATE] Request headers:', JSON.stringify(req.headers, null, 2));
+      console.log('[RPC_UPDATE] Request user (multiAuth):', JSON.stringify(req.user, null, 2));
+      console.log('[RPC_UPDATE] Request auth (singleAuth):', JSON.stringify((req as any).auth, null, 2));
       console.log('[RPC_UPDATE] Dados recebidos:', JSON.stringify(req.body, null, 2));
       
-      // Extrair dados do usuário
-      // @ts-ignore - req.user é adicionado pelo middleware de autenticação
-      const userId = req.user?.id;
+      // Verificar dados de autenticação (suporte para ambos os middlewares)
+      // @ts-ignore - req.user é adicionado pelo middleware multiAuth
+      let userId = req.user?.id;
       // @ts-ignore
-      const isAdmin = req.user?.role === 'ADMIN';
+      let isAdmin = req.user?.role === 'ADMIN';
+      
+      // Se não temos user, verificar se há auth do middleware singleAuth
+      if (!userId) {
+        // @ts-ignore - req.auth é adicionado pelo middleware singleAuth
+        userId = (req as any).auth?.userId;
+        // @ts-ignore
+        isAdmin = (req as any).auth?.role === 'ADMIN';
+      }
+      
+      console.log('[RPC_UPDATE] Dados de autenticação extraídos:', { userId, isAdmin });
       
       if (!userId) {
-        console.log('[RPC_UPDATE] Tentativa de atualização sem userId');
+        console.log('[RPC_UPDATE] ERRO: Usuário não autenticado - userId não encontrado');
         return res.status(401).json({ 
-          message: 'Usuário não autenticado'
+          message: 'Usuário não autenticado - Token inválido ou expirado',
+          debug: {
+            hasReqUser: !!req.user,
+            hasReqAuth: !!(req as any).auth,
+            userKeys: req.user ? Object.keys(req.user) : null,
+            authKeys: (req as any).auth ? Object.keys((req as any).auth) : null
+          }
         });
       }
       
-      console.log('[RPC_UPDATE] Usuário autenticado:', { userId, isAdmin });
+      // Validar se o ID é um UUID válido
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        console.log('[RPC_UPDATE] ERRO: ID não é um UUID válido:', id);
+        return res.status(400).json({ 
+          message: 'ID do perfil inválido - deve ser um UUID' 
+        });
+      }
       
       // Para administradores, podemos atualizar qualquer perfil
       if (isAdmin) {
@@ -174,10 +200,15 @@ export class ProfissionalRpcController {
         const updateData = { ...req.body };
         delete updateData.user_id; // Não permitir alterar user_id
         
+        console.log('[RPC_UPDATE] Dados para atualização (admin):', JSON.stringify(updateData, null, 2));
+        
         try {
           const result = await profissionalRepository.update(id, updateData);
           console.log('[RPC_UPDATE] Perfil atualizado com sucesso pelo admin');
-          return res.json(result);
+          return res.json({ 
+            data: result,
+            message: 'Perfil atualizado com sucesso'
+          });
         } catch (error: any) {
           console.error('[RPC_UPDATE] Erro ao atualizar perfil pelo admin:', error);
           throw error;
@@ -187,51 +218,84 @@ export class ProfissionalRpcController {
       // Para usuários comuns, verificar se o perfil pertence a eles
       console.log('[RPC_UPDATE] Verificando propriedade do perfil para usuário comum');
       
-      // Verificar se o perfil existe e pertence ao usuário
-      const response = await profissionalRepository.getByUserId(userId);
-      const existingProfile = response?.data;
-      
-      if (!existingProfile) {
-        console.log('[RPC_UPDATE] Perfil não encontrado para o usuário');
-        return res.status(404).json({ 
-          message: 'Perfil profissional não encontrado' 
+      try {
+        // Verificar se o perfil existe e pertence ao usuário
+        const existingProfile = await profissionalRepository.getByUserId(userId);
+        console.log('[RPC_UPDATE] Perfil existente encontrado:', !!existingProfile);
+        
+        if (!existingProfile) {
+          console.log('[RPC_UPDATE] ERRO: Perfil não encontrado para o usuário');
+          return res.status(404).json({ 
+            message: 'Perfil profissional não encontrado para este usuário' 
+          });
+        }
+        
+        // Verificar se o ID do perfil corresponde ao ID solicitado
+        if (existingProfile.id !== id) {
+          console.log('[RPC_UPDATE] ERRO: ID do perfil não corresponde ao solicitado:', {
+            profileId: existingProfile.id,
+            requestedId: id,
+            userId: userId
+          });
+          return res.status(403).json({ 
+            message: 'Sem permissão para editar este perfil - ID não corresponde' 
+          });
+        }
+        
+        // Preparar dados para atualização (sem alterar user_id, status e featured)
+        const updateData = { ...req.body };
+        delete updateData.user_id;
+        delete updateData.status;
+        delete updateData.featured;
+        
+        console.log('[RPC_UPDATE] Dados para atualização (usuário comum):', JSON.stringify(updateData, null, 2));
+        console.log('[RPC_UPDATE] Atualizando perfil para usuário comum:', id);
+        
+        const result = await profissionalRepository.update(id, updateData);
+        console.log('[RPC_UPDATE] Perfil atualizado com sucesso');
+        
+        return res.json({ 
+          data: result,
+          message: 'Perfil atualizado com sucesso'
         });
+        
+      } catch (profileError: any) {
+        console.error('[RPC_UPDATE] Erro ao buscar/verificar perfil existente:', profileError);
+        
+        if (profileError instanceof AppError && profileError.statusCode === 404) {
+          return res.status(404).json({ 
+            message: 'Perfil profissional não encontrado para este usuário' 
+          });
+        }
+        throw profileError;
       }
       
-      // Verificar se o ID do perfil corresponde ao ID solicitado
-      if (existingProfile.id !== id) {
-        console.log('[RPC_UPDATE] ID do perfil não corresponde ao solicitado:', {
-          profileId: existingProfile.id,
-          requestedId: id
-        });
-        return res.status(403).json({ 
-          message: 'Sem permissão para editar este perfil' 
-        });
-      }
-      
-      // Preparar dados para atualização (sem alterar user_id, status e featured)
-      const updateData = { ...req.body };
-      delete updateData.user_id;
-      delete updateData.status;
-      delete updateData.featured;
-      
-      console.log('[RPC_UPDATE] Atualizando perfil para usuário comum:', id);
-      
-      const result = await profissionalRepository.update(id, updateData);
-      console.log('[RPC_UPDATE] Perfil atualizado com sucesso');
-      res.json(result);
     } catch (error: any) {
-      console.error('[RPC_UPDATE] Erro ao atualizar perfil profissional:', error);
+      console.error('[RPC_UPDATE] =================================');
+      console.error('[RPC_UPDATE] ERRO GERAL ao atualizar perfil profissional:', error);
+      console.error('[RPC_UPDATE] Tipo do erro:', typeof error);
+      console.error('[RPC_UPDATE] Nome do erro:', error.name);
+      console.error('[RPC_UPDATE] Mensagem do erro:', error.message);
+      console.error('[RPC_UPDATE] Stack do erro:', error.stack);
+      console.error('[RPC_UPDATE] Status Code do erro:', error.statusCode);
+      console.error('[RPC_UPDATE] =================================');
       
       if (error instanceof AppError) {
         return res.status(error.statusCode).json({ 
-          message: error.message 
+          message: error.message,
+          error: process.env.NODE_ENV !== 'production' ? error.stack : undefined
         });
       }
       
       return res.status(500).json({ 
-        message: 'Erro ao atualizar perfil profissional',
-        error: error.message 
+        message: 'Erro interno ao atualizar perfil profissional',
+        error: error.message,
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+        debug: {
+          type: typeof error,
+          name: error.name,
+          statusCode: error.statusCode
+        }
       });
     }
   }

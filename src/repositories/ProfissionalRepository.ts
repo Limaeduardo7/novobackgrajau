@@ -117,22 +117,89 @@ export class ProfissionalRepository {
    */
   async update(id: string, data: any) {
     try {
+      console.log('[REPO_UPDATE] =================================');
+      console.log('[REPO_UPDATE] Iniciando atualização no repositório');
+      console.log('[REPO_UPDATE] ID do perfil:', id);
+      console.log('[REPO_UPDATE] Dados para atualização:', JSON.stringify(data, null, 2));
+      
+      // Verificar se o perfil existe antes de tentar atualizar
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profissionais')
+        .select('id, user_id, nome, email')
+        .eq('id', id)
+        .single();
+      
+      if (checkError) {
+        console.error('[REPO_UPDATE] Erro ao verificar perfil existente:', checkError);
+        if (checkError.code === 'PGRST116') {
+          throw new AppError(404, 'Perfil profissional não encontrado');
+        }
+        return handleSupabaseError(checkError);
+      }
+      
+      console.log('[REPO_UPDATE] Perfil existente encontrado:', existingProfile);
+      
+      // Limpar dados undefined/null desnecessários para evitar problemas
+      const cleanData = Object.fromEntries(
+        Object.entries(data).filter(([key, value]) => {
+          // Manter null explícito, mas remover undefined
+          return value !== undefined;
+        })
+      );
+      
+      console.log('[REPO_UPDATE] Dados limpos para atualização:', JSON.stringify(cleanData, null, 2));
+      
+      // Atualizar o perfil
       const { data: updatedProfile, error } = await supabase
         .from('profissionais')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
-        .select();
+        .select()
+        .single();
       
       if (error) {
-        console.error('Erro ao atualizar perfil profissional:', error);
+        console.error('[REPO_UPDATE] Erro na atualização:', error);
+        console.error('[REPO_UPDATE] Código do erro:', error.code);
+        console.error('[REPO_UPDATE] Mensagem do erro:', error.message);
+        console.error('[REPO_UPDATE] Detalhes do erro:', error.details);
+        console.error('[REPO_UPDATE] Hint do erro:', error.hint);
+        
+        // Tratar erros específicos
+        if (error.code === '23505') {
+          throw new AppError(400, 'Dados duplicados - verifique email ou telefone');
+        }
+        
+        if (error.code === '23502') {
+          throw new AppError(400, 'Campo obrigatório ausente');
+        }
+        
+        if (error.code === '22001') {
+          throw new AppError(400, 'Dados muito longos para o campo');
+        }
+        
         return handleSupabaseError(error);
       }
       
-      return updatedProfile[0];
-    } catch (error) {
-      console.error(`Erro ao atualizar perfil profissional: ${id}`, error);
+      if (!updatedProfile) {
+        console.error('[REPO_UPDATE] Atualização retornou dados vazios');
+        throw new AppError(404, 'Perfil não encontrado após atualização');
+      }
+      
+      console.log('[REPO_UPDATE] Perfil atualizado com sucesso:', updatedProfile);
+      console.log('[REPO_UPDATE] =================================');
+      
+      return updatedProfile;
+    } catch (error: any) {
+      console.error('[REPO_UPDATE] =================================');
+      console.error(`[REPO_UPDATE] ERRO ao atualizar perfil profissional: ${id}`, error);
+      console.error('[REPO_UPDATE] Tipo do erro:', typeof error);
+      console.error('[REPO_UPDATE] Nome do erro:', error?.name);
+      console.error('[REPO_UPDATE] Mensagem do erro:', error?.message);
+      console.error('[REPO_UPDATE] Stack do erro:', error?.stack);
+      console.error('[REPO_UPDATE] =================================');
+      
       if (error instanceof AppError) throw error;
-      throw new AppError(500, 'Erro ao atualizar perfil profissional');
+      throw new AppError(500, `Erro ao atualizar perfil profissional: ${error?.message || 'Erro desconhecido'}`);
     }
   }
 
