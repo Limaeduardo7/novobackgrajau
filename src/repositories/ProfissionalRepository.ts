@@ -139,15 +139,35 @@ export class ProfissionalRepository {
       
       console.log('[REPO_UPDATE] Perfil existente encontrado:', existingProfile);
       
-      // Limpar dados undefined/null desnecessários para evitar problemas
+      // Definir campos válidos da tabela profissionais
+      const camposValidos = [
+        'nome', 'ocupacao', 'especialidades', 'experiencia', 'educacao', 
+        'certificacoes', 'portfolio', 'disponibilidade', 'valor_hora', 
+        'sobre', 'foto', 'telefone', 'email', 'website', 'endereco', 
+        'cidade', 'estado', 'social_media', 'status', 'featured', 'updated_at'
+      ];
+      
+      // Filtrar apenas campos válidos e remover undefined
       const cleanData = Object.fromEntries(
-        Object.entries(data).filter(([key, value]) => {
-          // Manter null explícito, mas remover undefined
-          return value !== undefined;
-        })
+        Object.entries(data)
+          .filter(([key, value]) => {
+            // Verificar se o campo é válido
+            if (!camposValidos.includes(key)) {
+              console.log(`[REPO_UPDATE] Campo '${key}' ignorado (não existe na tabela)`);
+              return false;
+            }
+            // Manter null explícito, mas remover undefined
+            return value !== undefined;
+          })
       );
       
-      console.log('[REPO_UPDATE] Dados limpos para atualização:', JSON.stringify(cleanData, null, 2));
+      console.log('[REPO_UPDATE] Dados filtrados e limpos:', JSON.stringify(cleanData, null, 2));
+      
+      // Verificar se há dados para atualizar
+      if (Object.keys(cleanData).length === 0) {
+        console.log('[REPO_UPDATE] Nenhum campo válido para atualizar');
+        throw new AppError(400, 'Nenhum campo válido fornecido para atualização');
+      }
       
       // Atualizar o perfil
       const { data: updatedProfile, error } = await supabase
