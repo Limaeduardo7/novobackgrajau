@@ -26,6 +26,13 @@ router.get('/user/:userId', multiAuth, profissionalRpcController.getByUserId);
 router.post('/', multiAuth, profissionalRpcController.createProfile);
 
 /**
+ * @route   GET /api/profissionais/:id/similares
+ * @desc    Buscar profissionais similares ao perfil especificado
+ * @access  Public
+ */
+router.get('/:id/similares', profissionalRpcController.getSimilarProfessionals);
+
+/**
  * @route   PUT /api/profissionais/:id
  * @desc    Atualizar perfil profissional existente
  * @access  Private (próprio usuário ou admin)

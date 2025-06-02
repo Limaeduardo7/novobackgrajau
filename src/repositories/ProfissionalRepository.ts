@@ -247,6 +247,130 @@ export class ProfissionalRepository {
       throw new AppError(500, 'Erro ao excluir perfil profissional');
     }
   }
+
+  /**
+   * Busca profissionais similares baseado em critérios de similaridade
+   * @param profileId ID do perfil de referência
+   * @param limit Limite de resultados (padrão: 6)
+   * @returns Lista de profissionais similares
+   */
+  async getSimilarProfessionals(profileId: string, limit: number = 6) {
+    try {
+      console.log('[REPO_SIMILAR] Buscando profissionais similares para:', profileId);
+      
+      // Primeiro, buscar o perfil de referência
+      const { data: referenceProfile, error: refError } = await supabase
+        .from('profissionais')
+        .select('ocupacao, cidade, estado, especialidades')
+        .eq('id', profileId)
+        .eq('status', 'APPROVED')
+        .single();
+      
+      if (refError || !referenceProfile) {
+        console.error('[REPO_SIMILAR] Erro ao buscar perfil de referência:', refError);
+        throw new AppError(404, 'Perfil de referência não encontrado');
+      }
+      
+      console.log('[REPO_SIMILAR] Perfil de referência:', referenceProfile);
+      
+      // Buscar profissionais similares com query otimizada
+      // Prioridade: 1º mesma ocupação, 2º mesma cidade/estado, 3º especialidades similares
+      const { data: similarProfiles, error } = await supabase
+        .from('profissionais')
+        .select(`
+          id, nome, ocupacao, cidade, estado, especialidades, 
+          sobre, foto, valor_hora, featured, created_at
+        `)
+        .neq('id', profileId) // Excluir o próprio perfil
+        .eq('status', 'APPROVED') // Apenas profissionais aprovados
+        .or(`
+          ocupacao.eq.${referenceProfile.ocupacao},
+          and(cidade.eq.${referenceProfile.cidade},estado.eq.${referenceProfile.estado})
+        `)
+        .order('featured', { ascending: false }) // Destacados primeiro
+        .order('created_at', { ascending: false })
+        .limit(limit * 2); // Buscar mais para depois filtrar
+      
+      if (error) {
+        console.error('[REPO_SIMILAR] Erro ao buscar profissionais similares:', error);
+        return handleSupabaseError(error);
+      }
+      
+      if (!similarProfiles || similarProfiles.length === 0) {
+        console.log('[REPO_SIMILAR] Nenhum profissional similar encontrado, buscando profissionais gerais');
+        
+        // Se não encontrar similares, buscar profissionais em destaque da mesma região
+        const { data: fallbackProfiles, error: fallbackError } = await supabase
+          .from('profissionais')
+          .select(`
+            id, nome, ocupacao, cidade, estado, especialidades, 
+            sobre, foto, valor_hora, featured, created_at
+          `)
+          .neq('id', profileId)
+          .eq('status', 'APPROVED')
+          .eq('estado', referenceProfile.estado)
+          .order('featured', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        
+        if (fallbackError) {
+          console.error('[REPO_SIMILAR] Erro no fallback:', fallbackError);
+          return [];
+        }
+        
+        return fallbackProfiles || [];
+      }
+      
+      // Calcular pontuação de similaridade para cada perfil
+      const profilesWithScore = similarProfiles.map(profile => {
+        let score = 0;
+        
+        // Mesma ocupação: +10 pontos
+        if (profile.ocupacao === referenceProfile.ocupacao) {
+          score += 10;
+        }
+        
+        // Mesma cidade: +5 pontos
+        if (profile.cidade === referenceProfile.cidade) {
+          score += 5;
+        }
+        
+        // Mesmo estado: +3 pontos
+        if (profile.estado === referenceProfile.estado) {
+          score += 3;
+        }
+        
+        // Especialidades similares: +2 pontos por especialidade em comum
+        if (profile.especialidades && referenceProfile.especialidades) {
+          const commonSkills = profile.especialidades.filter((skill: string) => 
+            referenceProfile.especialidades.includes(skill)
+          );
+          score += commonSkills.length * 2;
+        }
+        
+        // Profissional em destaque: +1 ponto
+        if (profile.featured) {
+          score += 1;
+        }
+        
+        return { ...profile, similarityScore: score };
+      });
+      
+      // Ordenar por pontuação de similaridade (maior para menor) e limitar resultados
+      const sortedProfiles = profilesWithScore
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, limit)
+        .map(({ similarityScore, ...profile }) => profile); // Remover score do retorno
+      
+      console.log(`[REPO_SIMILAR] Encontrados ${sortedProfiles.length} profissionais similares`);
+      return sortedProfiles;
+      
+    } catch (error: any) {
+      console.error('[REPO_SIMILAR] Erro ao buscar profissionais similares:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError(500, `Erro ao buscar profissionais similares: ${error?.message || 'Erro desconhecido'}`);
+    }
+  }
 }
 
 export default new ProfissionalRepository(); 

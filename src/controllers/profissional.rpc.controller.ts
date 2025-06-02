@@ -400,6 +400,61 @@ export class ProfissionalRpcController {
       });
     }
   }
+
+  /**
+   * Busca profissionais similares ao perfil especificado
+   */
+  async getSimilarProfessionals(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 6;
+      
+      console.log('[RPC_SIMILAR] =================================');
+      console.log('[RPC_SIMILAR] Buscando profissionais similares');
+      console.log('[RPC_SIMILAR] ID do perfil de referência:', id);
+      console.log('[RPC_SIMILAR] Limite de resultados:', limit);
+      
+      // Validar UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        console.log('[RPC_SIMILAR] ID inválido fornecido:', id);
+        return res.status(400).json({ 
+          message: 'ID do perfil inválido' 
+        });
+      }
+      
+      // Buscar profissionais similares
+      const similarProfessionals = await profissionalRepository.getSimilarProfessionals(id, limit);
+      
+      console.log(`[RPC_SIMILAR] Retornando ${similarProfessionals.length} profissionais similares`);
+      console.log('[RPC_SIMILAR] =================================');
+      
+      res.json({
+        success: true,
+        data: similarProfessionals,
+        total: similarProfessionals.length,
+        limit
+      });
+      
+    } catch (error: any) {
+      console.error('[RPC_SIMILAR] =================================');
+      console.error('[RPC_SIMILAR] ERRO ao buscar profissionais similares:', error);
+      console.error('[RPC_SIMILAR] Tipo do erro:', typeof error);
+      console.error('[RPC_SIMILAR] Nome do erro:', error?.name);
+      console.error('[RPC_SIMILAR] Mensagem do erro:', error?.message);
+      console.error('[RPC_SIMILAR] =================================');
+      
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({ 
+          message: error.message 
+        });
+      }
+      
+      res.status(500).json({ 
+        message: 'Erro interno do servidor ao buscar profissionais similares' 
+      });
+    }
+  }
 }
 
 export default new ProfissionalRpcController(); 
